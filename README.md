@@ -15,3 +15,13 @@
 | AutoAttack | 1.0000 | 0.9620 | 96.1970 | _Waiting..._ |
 | Pixle | 1.0000 | 0.7626 | 76.2641 | _Waiting..._ |
 | VNIFGSM | 0.9980 | 0.9375 | 93.5585 | _Waiting..._ |
+
+## 🛠️ Usage
+
+1. `$ mkdir dataset`
+1. Put cifar10_clean_500 dir into dataset
+1. `$ conda create -n adv pip python=3.10`
+1. `$ conda activate adv`
+2. `$ pip install -r requirements.txt`
+3. `$ python run_attack.py --attack pgd --save-images` or `$ python run_attack.py --attack pgd`
+   without saving adversarial images.
