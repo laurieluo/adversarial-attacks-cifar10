@@ -1,0 +1,17 @@
+# adversarial-attacks-cifar10
+
+## ✅ Current Results
+
+- **Model**: ResNet18
+- **Accuracy on Clean Dataset**: 97%
+- **Attack Methods**: [torchattacks](https://github.com/Harry24k/adversarial-attacks-pytorch)
+
+| Attack | Score_ASR | Score_SSIM | Score_M | Platform Score |
+| ----------- | ----------- | ----------- | ----------- | ----------- |
+| PGD | 0.9980 | 0.9614 | 95.9453 | _11.3433_ |
+| FGSM | 0.4960 | 0.9272 | 45.9895 | _Pass_ |
+| BIM | 0.9980 | 0.9642 | 96.2294 | _9.1243_ |
+| CW | 1.0000 | 0.9974 | 99.7352 | _Waiting..._ |
+| AutoAttack | 1.0000 | 0.9620 | 96.1970 | _Waiting..._ |
+| Pixle | 1.0000 | 0.7626 | 76.2641 | _Waiting..._ |
+| VNIFGSM | 0.9980 | 0.9375 | 93.5585 | _Waiting..._ |
