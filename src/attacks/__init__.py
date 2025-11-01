@@ -7,3 +7,6 @@ from .cw import CW
 from .autoattack import AutoAttack
 from .pixle import Pixle
 from .vnifgsm import VNIFGSM
+from .onepixel import OnePixel
+from .sparsefool import SparseFool
+from .jitter import Jitter
