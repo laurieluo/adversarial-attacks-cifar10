@@ -12,7 +12,7 @@ from skimage.metrics import structural_similarity
 from src.models import ResNet18
 from src.data_loader import get_custom_loader
 from src.utils import get_device, NormalizedModel
-from src.attacks import PGD, FGSM, BIM, CW, AutoAttack, Pixle, VNIFGSM
+from src.attacks import PGD, FGSM, BIM, CW, AutoAttack, Pixle, VNIFGSM, OnePixel, SparseFool, Jitter
 
 # --- Configuration ---
 MODEL_PATH = "saved_models/cifar10_resnet18.pth"
@@ -28,7 +28,7 @@ def parse_args():
         '--attack', 
         type=str, 
         default='pgd', 
-        choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm'],
+        choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm', 'onepixel', 'sparsefool', 'jitter'],
         help="Type of attack to run (default: pgd)"
     )
     parser.add_argument(
@@ -108,10 +108,19 @@ def main():
         atk = AutoAttack(norm_model, norm='Linf', eps=8/255)
     elif args.attack == 'pixle':
         print("Initializing Pixle Attack... (This may be slow due to optimization)")
-        atk = Pixle(norm_model, restarts=20, max_iterations=10)
+        atk = Pixle(norm_model, pixel_mapping='similarity_random', restarts=20, max_iterations=10)
     elif args.attack == 'vnifgsm':
         print("Initializing VNIFGSM Attack...")
         atk = VNIFGSM(norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0)
+    elif args.attack == 'onepixel':
+        print("Initializing OnePixel Attack... (This will be EXTREMELY slow!)")
+        atk = OnePixel(norm_model, pixels=1, steps=10, popsize=10, inf_batch=BATCH_SIZE)
+    elif args.attack == 'sparsefool':
+        print("Initializing SparseFool Attack... (This may be slow)")
+        atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
+    elif args.attack == 'jitter': 
+        print("Initializing Jitter Attack...")
+        atk = Jitter(norm_model, eps=8/255, alpha=2/255, steps=10, scale=10, std=0.1, random_start=True)
     else:
         print(f"Error: Unknown attack '{args.attack}'")
         sys.exit(1)
