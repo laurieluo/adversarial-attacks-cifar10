@@ -1,14 +1,113 @@
 # adversarial-attacks-cifar10
 
-## 🛠️ Usage
+## 📂 Project Structure
 
-1. `$ mkdir dataset`
-1. Put cifar10_clean_500 dir into dataset
-1. `$ conda create -n adv pip python=3.10`
-1. `$ conda activate adv`
-2. `$ pip install -r requirements.txt`
-3. `$ python run_attack.py --attack pgd --save-images` or `$ python run_attack.py --attack pgd`
-   without saving adversarial images.
+```
+.
+├── adversarial_images/      # (Generated) Saves adversarial images and ZIPs
+│   └── [MODEL_NAME]/
+│       └── [ATTACK_NAME]/
+│           ├── images/      # 500 adversarial images
+│           ├── label.txt    # Label file
+│           └── [MODEL]_[ATTACK]_[timestamp].zip
+│
+├── dataset/
+│   └── cifar10_clean_500/   # (Manual) 500 images for attacking
+│       ├── images/
+│       └── label.txt
+│   # (train.py auto-downloads full CIFAR-10 here)
+│
+├── saved_models/            # (Generated) Saved trained model weights
+│   ├── cifar10_resnet18.pth
+│   ├── cifar10_vgg16.pth
+│   └── cifar10_densenet121.pth
+│
+├── src/                     # Source code directory
+│   ├── attacks/             # Attack wrappers (pgd.py, fgsm.py, ...)
+│   ├── __init__.py
+│   ├── data_loader.py       # Data loaders
+│   ├── logger.py            # Colored logger configuration
+│   ├── models.py            # Model definitions (ResNet18, VGG16, ...)
+│   └── utils.py             # Utility functions 
+│
+├── README.md                # Project description
+├── requirements.txt         # Python dependencies
+├── run_attack.py            # Main script to run adversarial attacks
+└── train.py                 # Main script to train new models
+```
+
+## 🛠 Usage
+
+### 1. Environment Setup
+
+First, set up the project environment using Conda and install the required packages.
+
+```bash
+# Create a new conda environment
+$ conda create -n adv pip python=3.10
+
+# Activate the environment
+$ conda activate adv
+
+# Install all required packages
+$ pip install -r requirements.txt
+```
+
+### 2. Prepare Data
+
+You only need the 500-image attack dataset for attacking.
+During training, the full CIFAR-10 training set will be downloaded automatically.
+
+```bash
+# Create the main dataset directory
+$ mkdir dataset
+
+# 
+# Manually download and place your 'cifar10_clean_500' directory
+# into the 'dataset' folder.
+#
+# The final structure should be:
+# ./dataset/cifar10_clean_500/
+# ├── images/
+# │   ├── 0.png
+# │   ├── 1.png
+# │   └── ...
+# └── label.txt
+#
+```
+
+### 3. Train a Model (Optional)
+
+You can train a new model. The train.py script will save the model to the saved_models/ directory.
+
+Already trained models:
+
+- saved_models/cifar10_densenet121.pth
+- saved_models/cifar10_resnet18.pth
+- saved_models/cifar10_vgg16.pth
+
+```bash
+# Train the default ResNet-18 model (takes ~10-15 min on a good GPU)
+$ python train.py --model resnet18
+
+# You can also train other architectures:
+# $ python train.py --model vgg16
+# $ python train.py --model densenet121
+```
+
+### 4. Run an Attack
+
+Once you have a saved model (e.g., saved_models/cifar10_resnet18.pth), you can run attacks against it using run_attack.py.
+
+```bash
+# Run a PGD attack on ResNet-18 (no images saved)
+$ python run_attack.py --model resnet18 --attack pgd
+
+# Run a FGSM attack on VGG-16 and save the adversarial images
+# This will create a ZIP file in:
+# adversarial_images/VGG16/FGSM/VGG16_FGSM_[timestamp].zip
+$ python run_attack.py --model vgg16 --attack fgsm --save_images
+```
 
 ## ✅ Current Results
 
