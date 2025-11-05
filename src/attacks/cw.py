@@ -1,5 +1,5 @@
-# src/attacks/cw.py
 import torchattacks
+import logging
 from .base_attack import BaseAttack
 
 class CW(BaseAttack):
@@ -15,15 +15,32 @@ class CW(BaseAttack):
         :param steps: Max steps for the optimization
         :param lr: Learning rate for the optimization
         """
+        logging.info("Initializing CW attack...")
+
         super().__init__(model)
+        
+        self.c = c
+        self.kappa = kappa
+        self.steps = steps
+        self.lr = lr
+        
         # Initialize the torchattacks CW object
         self.attack_fn = torchattacks.CW(
             model, 
-            c=c, 
-            kappa=kappa, 
-            steps=steps, 
-            lr=lr
+            c=self.c, 
+            kappa=self.kappa, 
+            steps=self.steps, 
+            lr=self.lr
         )
+        
+        logging.info(
+            f"Initialized CW Attack: "
+            f"c={self.c}, kappa={self.kappa}, steps={self.steps}, lr={self.lr}"
+        )
+        logging.warning(
+            "CW Attack is extremely slow. This may take several minutes or hours."
+        )
+
 
     def attack(self, images, labels):
         """

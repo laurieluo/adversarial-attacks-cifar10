@@ -1,5 +1,5 @@
-# src/attacks/fgsm.py
 import torchattacks
+import logging 
 from .base_attack import BaseAttack
 
 class FGSM(BaseAttack):
@@ -12,9 +12,19 @@ class FGSM(BaseAttack):
         :param model: The model to attack (should be NormalizedModel).
         :param eps: L-infinity norm (max perturbation).
         """
+        logging.info("Initializing FGSM attack...")
+
         super().__init__(model)
+        
+        self.eps = eps
+        
         # Initialize the torchattacks FGSM object
-        self.attack_fn = torchattacks.FGSM(model, eps=eps)
+        self.attack_fn = torchattacks.FGSM(model, eps=self.eps)
+
+        logging.info(
+            f"Initialized FGSM Attack: "
+            f"eps={self.eps:.4f}"
+        )
 
     def attack(self, images, labels):
         """

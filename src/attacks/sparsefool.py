@@ -1,5 +1,5 @@
-# src/attacks/sparsefool.py
 import torchattacks
+import logging  # 1. Import the logging module
 from .base_attack import BaseAttack
 
 class SparseFool(BaseAttack):
@@ -18,15 +18,30 @@ class SparseFool(BaseAttack):
         :param lam: Parameter for scaling DeepFool noise. (Default: 3)
         :param overshoot: Parameter for enhancing the noise. (Default: 0.02)
         """
+        logging.info("Initializing SparseFool Attack...")
+
         super().__init__(model)
-        print(f"[SparseFool Attack] Initializing with steps={steps}, lam={lam}, overshoot={overshoot}")
         
-        # 使用您提供的文档中的正确参数
+        # 2. Store parameters
+        self.steps = steps
+        self.lam = lam
+        self.overshoot = overshoot
+        
+        # 3. Log the initialization
+        logging.info(
+            f"Initialized SparseFool Attack: "
+            f"steps={self.steps}, lam={self.lam}, overshoot={self.overshoot}"
+        )
+        logging.warning(
+            "SparseFool Attack is iterative and can be slow."
+        )
+        
+        # Initialize the torchattacks SparseFool object
         self.attack_fn = torchattacks.SparseFool(
             model,
-            steps=steps,
-            lam=lam,
-            overshoot=overshoot
+            steps=self.steps,
+            lam=self.lam,
+            overshoot=self.overshoot
         )
 
     def attack(self, images, labels):
@@ -36,6 +51,8 @@ class SparseFool(BaseAttack):
         Note: SparseFool is a non-targeted attack by default
         and does not use the 'labels' parameter in its main logic,
         as it tries to find the closest decision boundary.
+        The torchattacks library implementation still requires 'labels' 
+        in the forward pass signature.
         """
-        # SparseFool (torchattacks.SparseFool) 的 forward 方法
+        # Pass images and labels to the attack function
         return self.attack_fn(images, labels)
