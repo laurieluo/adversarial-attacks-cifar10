@@ -2,7 +2,7 @@
 
 ## 📂 Project Structure
 
-```
+```bash
 .
 ├── adversarial_images/      # (Generated) Saves adversarial images and ZIPs
 │   └── [MODEL_NAME]/
@@ -76,16 +76,19 @@ $ mkdir dataset
 #
 ```
 
-### 3. Train a Model (Optional)
+### 3. (Optional) Train a Model 
 
-You can train a new model. The train.py script will save the model to the saved_models/ directory.
+You can train a new model. The `train.py` script will save the model to the saved_models/ directory.
+**ONLY** when you want to add a new model, you need to define the model in `src/models.py` and modify the code
+in `train.py`, we have already provided several trained models.
 
 Already trained models:
 
-- saved_models/cifar10_densenet121.pth
-- saved_models/cifar10_resnet18.pth
-- saved_models/cifar10_vgg16.pth
+- `saved_models/cifar10_densenet121.pth`
+- `saved_models/cifar10_resnet18.pth`
+- `saved_models/cifar10_vgg16.pth`
 
+Example usage:
 ```bash
 # Train the default ResNet-18 model (takes ~10-15 min on a good GPU)
 $ python train.py --model resnet18
@@ -106,7 +109,7 @@ $ python run_attack.py --model resnet18 --attack pgd
 # Run a FGSM attack on VGG-16 and save the adversarial images
 # This will create a ZIP file in:
 # adversarial_images/VGG16/FGSM/VGG16_FGSM_[timestamp].zip
-$ python run_attack.py --model vgg16 --attack fgsm --save_images
+$ python run_attack.py --model vgg16 --attack fgsm --save-images
 ```
 
 ## ✅ Current Results

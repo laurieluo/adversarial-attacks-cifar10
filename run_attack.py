@@ -42,7 +42,7 @@ def parse_args():
         help="Model architecture to attack (default: resnet18)"
     )
     parser.add_argument(
-        '--save_images',
+        '--save-images',
         action='store_true',
         help="Save the generated adversarial images to disk"
     )
