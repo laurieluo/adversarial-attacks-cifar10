@@ -63,7 +63,7 @@ def main():
         os.makedirs(images_save_dir, exist_ok=True)
         logging.info(f"Adversarial images will be saved to: {images_save_dir}")
     else:
-        logging.warning("Note: Adversarial images will NOT be saved (use --save_images to save).")
+        logging.warning("Note: Adversarial images will NOT be saved (use --save-images to save).")
     
     device = get_device()
     
