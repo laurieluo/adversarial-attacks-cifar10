@@ -1,5 +1,5 @@
-# src/attacks/jitter.py
 import torchattacks
+import logging  # 1. Import the logging module
 from .base_attack import BaseAttack
 
 class Jitter(BaseAttack):
@@ -22,18 +22,34 @@ class Jitter(BaseAttack):
         :param std: Standard deviation of Gaussian noise.
         :param random_start: Using random initialization of delta.
         """
+        logging.info("Initializing Jitter Attack...")
+
         super().__init__(model)
-        print(f"[Jitter Attack] Initializing with eps={eps:.4f}, alpha={alpha:.4f}, steps={steps}")
         
-        # 使用您提供的文档中的正确参数
+        # 2. Store parameters
+        self.eps = eps
+        self.alpha = alpha
+        self.steps = steps
+        self.scale = scale
+        self.std = std
+        self.random_start = random_start
+        
+        # 3. Log the initialization
+        logging.info(
+            f"Initialized Jitter Attack: "
+            f"eps={self.eps:.4f}, alpha={self.alpha:.4f}, steps={self.steps}, "
+            f"scale={self.scale}, std={self.std}, random_start={self.random_start}"
+        )
+        
+        # Initialize the torchattacks Jitter object
         self.attack_fn = torchattacks.Jitter(
             model,
-            eps=eps,
-            alpha=alpha,
-            steps=steps,
-            scale=scale,
-            std=std,
-            random_start=random_start
+            eps=self.eps,
+            alpha=self.alpha,
+            steps=self.steps,
+            scale=self.scale,
+            std=self.std,
+            random_start=self.random_start
         )
 
     def attack(self, images, labels):

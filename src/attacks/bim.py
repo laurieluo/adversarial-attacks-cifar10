@@ -1,5 +1,5 @@
-# src/attacks/bim.py
 import torchattacks
+import logging
 from .base_attack import BaseAttack
 
 class BIM(BaseAttack):
@@ -16,14 +16,28 @@ class BIM(BaseAttack):
         :param alpha: Step size per iteration.
         :param steps: Number of attack iterations.
         """
+        logging.info("Initializing BIM attack...")
+
         super().__init__(model)
+        
+        self.eps = eps
+        self.alpha = alpha
+        self.steps = steps
+        self.random_start = False # BIM is PGD without random start
+
         # Initialize the torchattacks BIM object
         # Note: BIM is PGD without random_start
         self.attack_fn = torchattacks.BIM(
             model, 
-            eps=eps, 
-            alpha=alpha, 
-            steps=steps
+            eps=self.eps, 
+            alpha=self.alpha, 
+            steps=self.steps
+        )
+        
+        logging.info(
+            f"Initialized BIM (I-FGSM) Attack: "
+            f"eps={self.eps:.4f}, alpha={self.alpha:.4f}, steps={self.steps}, "
+            f"random_start={self.random_start}"
         )
 
     def attack(self, images, labels):

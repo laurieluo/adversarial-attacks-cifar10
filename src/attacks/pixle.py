@@ -1,5 +1,5 @@
-# src/attacks/pixle.py
 import torchattacks
+import logging  # 1. Import the logging module
 from .base_attack import BaseAttack
 
 class Pixle(BaseAttack):
@@ -18,16 +18,35 @@ class Pixle(BaseAttack):
         :param restarts: Number of restarts. (Default: 20)
         :param max_iterations: Iterations per restart. (Default: 10)
         """
+        logging.info("Initializing Pixle Attack...")
+
         super().__init__(model)
-        print(f"[Pixle Attack] Initializing with restarts={restarts}, max_iterations={max_iterations}")
         
+        # 2. Store parameters
+        self.x_dimensions = x_dimensions
+        self.y_dimensions = y_dimensions
+        self.pixel_mapping = pixel_mapping
+        self.restarts = restarts
+        self.max_iterations = max_iterations
+        
+        # 3. Log the initialization
+        logging.info(
+            f"Initialized Pixle Attack: "
+            f"x_dimensions={self.x_dimensions}, y_dimensions={self.y_dimensions}, "
+            f"restarts={self.restarts}, max_iterations={self.max_iterations}, "
+            f"pixel_mapping='{self.pixel_mapping}'"
+        )
+        logging.warning(
+            "Pixle Attack uses an optimization algorithm and can be slow."
+        )
+
         self.attack_fn = torchattacks.Pixle(
             model,
-            x_dimensions=x_dimensions,
-            y_dimensions=y_dimensions,
-            pixel_mapping=pixel_mapping,
-            restarts=restarts,
-            max_iterations=max_iterations,
+            x_dimensions=self.x_dimensions,
+            y_dimensions=self.y_dimensions,
+            pixel_mapping=self.pixel_mapping,
+            restarts=self.restarts,
+            max_iterations=self.max_iterations,
             update_each_iteration=False
         )
 

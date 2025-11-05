@@ -1,5 +1,5 @@
-# src/attacks/vnifgsm.py
 import torchattacks
+import logging  # 1. Import the logging module
 from .base_attack import BaseAttack
 
 class VNIFGSM(BaseAttack):
@@ -10,7 +10,7 @@ class VNIFGSM(BaseAttack):
     
     This is a momentum-based iterative attack that uses variance tuning.
     """
-    def __init__(self, model, eps=8/255, alpha=2/255, steps=10, decay=1.0):
+    def __init__(self, model, eps=8/255, alpha=2/255, steps=10, decay=1.0, n=5, beta=1.5):
         """
         :param model: The model to attack (should be NormalizedModel).
         :param eps: Max L-inf perturbation.
@@ -18,15 +18,33 @@ class VNIFGSM(BaseAttack):
         :param steps: Number of attack iterations.
         :param decay: Momentum decay factor.
         """
+        logging.info("Initializing VNIFGSM Attack...")
+
         super().__init__(model)
-        print(f"[VNIFGSM Attack] Initializing with eps={eps:.4f}, alpha={alpha:.4f}, steps={steps}")
+
+        # 2. Store parameters
+        self.eps = eps
+        self.alpha = alpha
+        self.steps = steps
+        self.decay = decay
+        self.n = n
+        self.beta = beta
+        
+        # 3. Log the initialization
+        logging.info(
+            f"Initialized VNIFGSM Attack: "
+            f"eps={self.eps:.4f}, alpha={self.alpha:.4f}, steps={self.steps}, "
+            f"decay={self.decay}, n={self.n}, beta={self.beta}."
+        )
         
         self.attack_fn = torchattacks.VNIFGSM(
             model,
-            eps=eps,
-            alpha=alpha,
-            steps=steps,
-            decay=decay
+            eps=self.eps,
+            alpha=self.alpha,
+            steps=self.steps,
+            decay=self.decay,
+            N=self.n,
+            beta=self.beta
         )
 
     def attack(self, images, labels):
