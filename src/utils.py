@@ -2,7 +2,16 @@ import torch
 import torch.nn as nn
 import logging
 import shutil
+import sys
 import os
+from datetime import datetime
+from skimage.metrics import structural_similarity
+from src.models import ResNet18, VGG16_BN, DenseNet121
+from src.attacks import (
+    PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
+    VNIFGSM, OnePixel, SparseFool, Jitter
+)
+
 
 def get_device():
     """
@@ -80,3 +89,157 @@ def create_zip_archive(archive_base_path, root_dir, base_dir="images"):
         logging.info(f"Successfully created ZIP archive: {zip_path}")
     except Exception as e:
         logging.error(f"Failed to create ZIP archive at '{archive_base_path}.zip': {e}")
+
+def load_model(model_name, device):
+    """
+    Loads a pre-trained model instance based on its name.
+    """
+    MODEL_PATH = f"saved_models/cifar10_{model_name.lower()}.pth"
+    logging.info(f"Loading pre-trained {model_name.upper()} model from: {MODEL_PATH}")
+
+    # 1. Instantiate the base model
+    if model_name == 'resnet18':
+        base_model = ResNet18().to(device)
+    elif model_name == 'vgg16':
+        base_model = VGG16_BN().to(device)
+    elif model_name == 'densenet121':
+        base_model = DenseNet121().to(device)
+    else:
+        logging.error(f"Invalid model name '{model_name}'.")
+        sys.exit(1)
+
+    # 2. Check for and load weights
+    if not os.path.exists(MODEL_PATH):
+        logging.error(f"Model file not found at '{MODEL_PATH}'")
+        logging.error(f"Please run 'python train.py --model {model_name}' first.")
+        sys.exit(1)
+        
+    try:
+        base_model.load_state_dict(torch.load(MODEL_PATH, map_location=device), strict=True)
+    except RuntimeError as e:
+        logging.error("Fatal: Weight loading failed (RuntimeError).")
+        logging.error(e)
+        logging.error(f"Architecture/weights mismatch for {model_name.upper()}.")
+        sys.exit(1)
+        
+    base_model.eval()
+    return base_model
+
+def get_attack(attack_name, norm_model, batch_size):
+    """
+    Initializes and returns an attack instance based on its name.
+    """
+    if attack_name == 'pgd':
+        atk = PGD(norm_model, eps=8/255, alpha=2/255, steps=10, random_start=True)
+    elif attack_name == 'fgsm':
+        atk = FGSM(norm_model, eps=8/255)
+    elif attack_name == 'bim':
+        atk = BIM(norm_model, eps=8/255, alpha=2/255, steps=10)
+    elif attack_name == 'cw':
+        atk = CW(norm_model, c=1, kappa=0, steps=1000, lr=0.01)
+    elif attack_name == 'autoattack':
+        atk = AutoAttack(norm_model, norm='Linf', eps=8/255, version='standard', n_classes=10, seed=None, verbose=False)
+    elif attack_name == 'pixle':
+        atk = Pixle(norm_model, x_dimensions=(2, 10), y_dimensions=(2, 10), pixel_mapping='random', restarts=20, max_iterations=10)
+    elif attack_name == 'vnifgsm':
+        atk = VNIFGSM(norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0, n=5, beta=1.5)
+    elif attack_name == 'onepixel':
+        # OnePixel needs inf_batch
+        atk = OnePixel(norm_model, pixels=1, steps=10, popsize=10, inf_batch=batch_size)
+    elif attack_name == 'sparsefool':
+        atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
+    elif attack_name == 'jitter':
+        atk = Jitter(norm_model, eps=8/255, alpha=2/255, steps=10, scale=10, std=0.1, random_start=True)
+    else:
+        logging.error(f"Unknown attack '{attack_name}'")
+        sys.exit(1)
+        
+    return atk
+
+def calculate_batch_ssim(clean_images_batch, adv_images_batch):
+    """
+    Calculates the total SSIM score for a batch of images.
+    """
+    clean_images_np = clean_images_batch.cpu().detach().numpy().transpose(0, 2, 3, 1)
+    adv_images_np = adv_images_batch.cpu().detach().numpy().transpose(0, 2, 3, 1)
+    
+    batch_ssim_sum = 0.0
+    for i in range(clean_images_np.shape[0]):
+        ssim_score = structural_similarity(
+            clean_images_np[i],
+            adv_images_np[i],
+            data_range=1.0,
+            channel_axis=-1
+        )
+        batch_ssim_sum += ssim_score # type: ignore
+        
+    return batch_ssim_sum
+
+def generate_results_table(attack_name, model_name, total_images, acc_clean, acc_adv, score_asr, score_ssim, score_m):
+    """
+    Formats the final results into a printable ASCII table.
+    """
+    attack_title = f" ATTACK: {attack_name.upper()} | MODEL: {model_name.upper()} "
+    total_img_str = f"{total_images}"
+    clean_acc_str = f"{acc_clean:.2f}%"
+    adv_acc_str = f"{acc_adv:.2f}%"
+    asr_str = f"{score_asr:.4f} ({(score_asr*100):.2f}%)"
+    ssim_str = f"{score_ssim:.4f} ({(score_ssim*100):.2f}%)"
+    m_score_str = f"{score_m:.4f}"
+
+    max_width = 59
+    col1_width = 32
+    col2_width = 20
+    inner_width = max_width - 2
+
+    title_padding = (inner_width - len(attack_title)) // 2
+    title_padding_rem = inner_width - len(attack_title) - title_padding
+    
+    if title_padding < 0: # Handle long titles
+        max_width = len(attack_title) + 4
+        inner_width = max_width - 2
+        col1_width = 32
+        col2_width = max_width - col1_width - 7
+        title_padding = 1
+        title_padding_rem = 1
+
+    report_table = "\n" 
+    report_table += f"+{'=' * (max_width - 2)}+\n"
+    report_table += f"|{' ' * title_padding}{attack_title}{' ' * title_padding_rem}|\n"
+    report_table += f"+{'=' * (max_width - 2)}+\n"
+    report_table += f"| {'Metric':<{col1_width}} | {'Value':<{col2_width}} |\n"
+    report_table += f"|{'-' * (col1_width + 2)}|{'-' * (col2_width + 2)}|\n"
+    report_table += f"| {'Total Images Tested':<{col1_width}} | {total_img_str:<{col2_width}} |\n"
+    report_table += f"| {'Clean Accuracy':<{col1_width}} | {clean_acc_str:<{col2_width}} |\n"
+    report_table += f"| {'Adversarial Accuracy':<{col1_width}} | {adv_acc_str:<{col2_width}} |\n"
+    report_table += f"| {'Attack Success Rate (ASR)':<{col1_width}} | {asr_str:<{col2_width}} |\n"
+    report_table += f"| {'Avg. Structural Sim. (SSIM)':<{col1_width}} | {ssim_str:<{col2_width}} |\n"
+    report_table += f"| {'Composite Score (M)':<{col1_width}} | {m_score_str:<{col2_width}} |\n"
+    report_table += f"+{'-' * (col1_width + 2)}+{'-' * (col2_width + 2)}+\n"
+    
+    return report_table
+
+def save_and_archive_results(attack_output_dir, label_file, model_name, attack_name):
+    """
+    Copies the label file and creates a ZIP archive of the results.
+    """
+    try:
+        label_save_path = os.path.join(attack_output_dir, "label.txt")
+        shutil.copy(label_file, label_save_path)
+        logging.info(f"Copied label file to: {label_save_path}")
+    except Exception as e:
+        logging.warning(f"Could not copy label file: {e}")
+
+    logging.info("Creating ZIP archive...")
+    
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    zip_file_name = f"{model_name.upper()}_{attack_name.upper()}_{timestamp_str}"
+    archive_base_path = os.path.join(attack_output_dir, zip_file_name)
+    
+    # Assuming create_zip_archive is defined elsewhere in utils.py
+    from src.utils import create_zip_archive # Or ensure it's in scope
+    create_zip_archive(
+        archive_base_path=archive_base_path,
+        root_dir=attack_output_dir,
+        base_dir="images" 
+    )
