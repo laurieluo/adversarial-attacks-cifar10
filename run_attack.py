@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument(
         '--attack', type=str, default='pgd',
         choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm',
-                 'onepixel', 'sparsefool', 'jitter'],
+                 'onepixel', 'sparsefool', 'jitter', 'mix_pgd_cw'],
         help="Type of attack to run (default: pgd)"
     )
     parser.add_argument(

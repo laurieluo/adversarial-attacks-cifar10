@@ -9,7 +9,8 @@ from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
 from src.attacks import (
     PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
-    VNIFGSM, OnePixel, SparseFool, Jitter
+    VNIFGSM, OnePixel, SparseFool, Jitter,
+    PGD_CW
 )
 
 
@@ -150,6 +151,8 @@ def get_attack(attack_name, norm_model, batch_size):
         atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
     elif attack_name == 'jitter':
         atk = Jitter(norm_model, eps=8/255, alpha=2/255, steps=10, scale=10, std=0.1, random_start=True)
+    elif attack_name == 'mix_pgd_cw':
+        atk = PGD_CW(model=norm_model,pgd_eps=6/255,pgd_alpha=2/255,pgd_steps=10,pgd_random_start=True,cw_c=0.3,cw_kappa=0,cw_steps=300,cw_lr=0.01)
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
