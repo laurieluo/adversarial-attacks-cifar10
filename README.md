@@ -53,6 +53,12 @@ $ conda activate adv
 $ pip install -r requirements.txt
 ```
 
+**TransferAttack**
+```bash
+# Run at the project root when first start:
+$ git clone https://github.com/Trustworthy-AI-Group/TransferAttack.git
+```
+
 ### 2. Prepare Data
 
 You only need the 500-image attack dataset for attacking.

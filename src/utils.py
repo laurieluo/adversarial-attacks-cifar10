@@ -142,7 +142,15 @@ def get_attack(attack_name, norm_model, batch_size):
     elif attack_name == 'pixle':
         atk = Pixle(norm_model, x_dimensions=(2, 10), y_dimensions=(2, 10), pixel_mapping='random', restarts=20, max_iterations=10)
     elif attack_name == 'vnifgsm':
-        atk = VNIFGSM(norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0, n=5, beta=1.5)
+        atk = VNIFGSM(
+            model=norm_model,
+            eps=8/255,      # CIFAR-10 标准
+            alpha=2/255,    # CIFAR-10 标准
+            steps=10,       # CIFAR-10 标准
+            decay=1.0,      # VNI 官方值
+            n=20,           # VNI 官方值 (你之前是 5)
+            beta=1.5        # VNI 官方值
+        )
     elif attack_name == 'onepixel':
         # OnePixel needs inf_batch
         atk = OnePixel(norm_model, pixels=1, steps=10, popsize=10, inf_batch=batch_size)
