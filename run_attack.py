@@ -1,12 +1,24 @@
-import torch
-import os
-import sys
-import argparse
+# run_attack.py
+from src.logger import setup_logging
 import logging
+import sys
+import os
+
+project_root = os.path.dirname(os.path.abspath(__file__))
+transfer_attack_path = os.path.join(project_root, 'TransferAttack')
+
+if not os.path.exists(transfer_attack_path):
+    logging.error(f"'TransferAttack' directory not found in {transfer_attack_path}.")
+    logging.warning("Please make sure you run the command at project root: git clone https://github.com/Trustworthy-AI-Group/TransferAttack.git")
+else:
+    sys.path.insert(0, transfer_attack_path)
+
+
+import torch
+import argparse
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-from src.logger import setup_logging
 from src.data_loader import get_custom_loader
 from src.utils import (
     get_device, 
