@@ -9,8 +9,7 @@ from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
 from src.attacks import (
     PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
-    VNIFGSM, OnePixel, SparseFool, Jitter,
-    PGD_CW
+    VNIFGSM, OnePixel, SparseFool, Jitter
 )
 
 
@@ -143,7 +142,15 @@ def get_attack(attack_name, norm_model, batch_size):
     elif attack_name == 'pixle':
         atk = Pixle(norm_model, x_dimensions=(2, 10), y_dimensions=(2, 10), pixel_mapping='random', restarts=20, max_iterations=10)
     elif attack_name == 'vnifgsm':
-        atk = VNIFGSM(norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0, n=5, beta=1.5)
+        atk = VNIFGSM(
+            model=norm_model,
+            eps=8/255,      # CIFAR-10 标准
+            alpha=2/255,    # CIFAR-10 标准
+            steps=10,       # CIFAR-10 标准
+            decay=1.0,      # VNI 官方值
+            n=20,           # VNI 官方值 (你之前是 5)
+            beta=1.5        # VNI 官方值
+        )
     elif attack_name == 'onepixel':
         # OnePixel needs inf_batch
         atk = OnePixel(norm_model, pixels=1, steps=10, popsize=10, inf_batch=batch_size)
@@ -151,8 +158,6 @@ def get_attack(attack_name, norm_model, batch_size):
         atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
     elif attack_name == 'jitter':
         atk = Jitter(norm_model, eps=8/255, alpha=2/255, steps=10, scale=10, std=0.1, random_start=True)
-    elif attack_name == 'mix_pgd_cw':
-        atk = PGD_CW(model=norm_model,pgd_eps=6/255,pgd_alpha=2/255,pgd_steps=10,pgd_random_start=True,cw_c=0.3,cw_kappa=0,cw_steps=300,cw_lr=0.01)
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)

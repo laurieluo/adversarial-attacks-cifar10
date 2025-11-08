@@ -10,4 +10,3 @@ from .vnifgsm import VNIFGSM
 from .onepixel import OnePixel
 from .sparsefool import SparseFool
 from .jitter import Jitter
-from .mix_pgd_cw import PGD_CW
