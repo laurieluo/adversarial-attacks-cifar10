@@ -28,7 +28,6 @@ class VNIFGSM(BaseAttack):
     fit this project's BaseAttack abstract class.
     """
 
-    # --- 关键修改 1: 在 __init__ 中接收所有参数 ---
     def __init__(self, model, eps, alpha, steps, decay=1.0, n=20, beta=1.5):
         """
         Initializes the TransferAttack VNIFGSM wrapper.
@@ -44,14 +43,12 @@ class VNIFGSM(BaseAttack):
         logging.info("Initializing TransferAttack VNIFGSM Wrapper...")
         super().__init__(model)
 
-        # --- 关键修改 2: 使用传入的参数，而不是硬编码 ---
         self.epsilon = eps
         self.alpha = alpha
         self.epoch = steps      # 'steps' in our framework -> 'epoch' in TransferAttack
         self.decay = decay
         self.num_neighbor = n   # 'n' in our framework -> 'num_neighbor' in TransferAttack
         self.beta = beta
-        # --- 修改结束 ---
 
         try:
             self.device = next(model.parameters()).device
