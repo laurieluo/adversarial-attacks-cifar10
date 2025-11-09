@@ -133,6 +133,6 @@ class PGD_CW(BaseAttack):
 
         # 最终裁剪（确保输出在[0,1]，避免极端值影响视觉质量）
         x_adv_final = torch.clamp(x_adv_blur, 0.0, 1.0)
-        logging.debug(f"CW Fine-Tuning Completed: Max Perturbation={torch.max(torch.abs(x_adv_pgdcw - x_adv_pgd)):.4f}")
+        logging.debug(f"Gaussian Blur Completed: Max Perturbation={torch.max(torch.abs(x_adv_final - x_adv_pgdcw)):.4f}")
 
-        return x_adv_pgdcw
+        return x_adv_final
