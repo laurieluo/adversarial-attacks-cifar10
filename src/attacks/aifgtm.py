@@ -19,16 +19,6 @@ except ImportError as e:
 
 
 class AIFGTM(BaseAttack):
-    """
-    Wrapper for the AIFGTM attack from the 'TransferAttack' library (AAAI 2022).
-    [https://arxiv.org/abs/2007.03838]
-
-    AI-FGTM: Making Adversarial Examples More Transferable and Indistinguishable
-
-    This class adapts the TransferAttack library's interface to
-    fit this project's BaseAttack abstract class.
-    """
-
     def __init__(self, model, eps, alpha, steps, decay=1.0, beta_1=0.9, beta_2=0.99, lam=1.3, mu_1=1.5, mu_2=1.9):
         """
         Initializes the TransferAttack AIFGTM wrapper.

@@ -22,7 +22,8 @@ from tqdm import tqdm
 from src.data_loader import get_custom_loader
 from src.utils import (
     get_device, 
-    NormalizedModel, 
+    NormalizedModel,
+    create_ensemble_model,
     load_model, 
     get_attack, 
     calculate_batch_ssim,
@@ -42,7 +43,8 @@ def parse_args():
     parser.add_argument(
         '--attack', type=str, default='pgd',
         choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm',
-                 'onepixel', 'sparsefool', 'jitter', 'pgd_cw', 'vnifgsm_sim', 'pixle_vnifgsm', 'aifgtm'],
+                 'onepixel', 'sparsefool', 'jitter', 'pgd_cw', 'vnifgsm_sim',
+                 'pixle_vnifgsm', 'aifgtm', 'adaea', 'cwa'],
         help="Type of attack to run (default: pgd)"
     )
     parser.add_argument(
@@ -75,9 +77,31 @@ def main():
     device = get_device()
     
     # --- 1. Load Model ---
-    base_model = load_model(args.model, device)
-    norm_model = NormalizedModel(base_model).to(device)
-    norm_model.eval()
+    ENSEMBLE_ATTACKS = ['adaea', 'cwa']
+
+    if args.attack in ENSEMBLE_ATTACKS:
+        # 为集成攻击创建集成模型，确保只使用实际存在的模型
+        ensemble_models = ['resnet18', 'vgg16', 'densenet121']  # 确保这些模型都存在
+        # 检查模型文件是否存在
+        available_models = []
+        for model_name in ensemble_models:
+            model_path = f"saved_models/cifar10_{model_name.lower()}.pth"
+            if os.path.exists(model_path):
+                available_models.append(model_name)
+            else:
+                logging.warning(f"Model {model_name} not found at {model_path}, skipping.")
+
+        if len(available_models) == 0:
+            logging.error("No models available for AdaEA attack!")
+            sys.exit(1)
+
+        norm_model = create_ensemble_model(available_models, device)
+        logging.info(f"Using {len(available_models)} models for AdaEA: {available_models}")
+    else:
+        # 单模型情况
+        base_model = load_model(args.model, device)
+        norm_model = NormalizedModel(base_model).to(device)
+        norm_model.eval()
 
     # --- 2. Load Data ---
     logging.info(f"Loading custom dataset from: {IMAGE_DIR}")

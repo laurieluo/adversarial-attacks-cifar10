@@ -116,6 +116,10 @@ $ python run_attack.py --model resnet18 --attack pgd
 # This will create a ZIP file in:
 # adversarial_images/VGG16/FGSM/VGG16_FGSM_[timestamp].zip
 $ python run_attack.py --model vgg16 --attack fgsm --save-images
+
+# Run a integrated attack algorithm like adaea,if save images,it will save to adversarial_images/RESNET18
+$ python run_attack.py --attack adaea
+$ python run_attack.py --attack adaea --save-images
 ```
 
 ## ✅ Current Results
