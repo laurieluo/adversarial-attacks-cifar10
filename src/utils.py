@@ -10,7 +10,8 @@ from src.models import ResNet18, VGG16_BN, DenseNet121
 from src.attacks import (
     PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
     VNIFGSM, OnePixel, SparseFool, Jitter,
-    PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM
+    PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
+    AdaEA, CWA
 )
 
 
@@ -63,6 +64,53 @@ class NormalizedModel(nn.Module):
         
         # (x - mean) / std
         return self.model((x - self.mean) / self.std)
+
+
+class EnsembleModel(nn.Module):
+    def __init__(self, models):
+        """
+        集成模型包装类
+        :param models: 模型列表
+        """
+        super(EnsembleModel, self).__init__()
+        self.models = nn.ModuleList(models)  # 使用 ModuleList 管理子模型
+        self.num_models = len(models)
+
+    def forward(self, x):
+        """
+        前向传播 - 返回模型输出的平均值
+        """
+        outputs = [model(x) for model in self.models]
+        return sum(outputs) / len(outputs)
+
+
+def create_ensemble_model(model_names, device):
+    """
+    创建集成模型
+    :param model_names: 模型名称列表
+    :param device: 设备
+    :return: EnsembleModel 实例
+    """
+    models = []
+    for name in model_names:
+        base_model = load_model(name, device)
+        norm_model = NormalizedModel(base_model).to(device)
+        norm_model.eval()
+        models.append(norm_model)
+
+    # 创建继承自 nn.Module 的集成模型，确保 num_model 与实际模型数一致
+    class EnsembleModelWrapper(nn.Module):
+        def __init__(self, model_list):
+            super(EnsembleModelWrapper, self).__init__()
+            self.models = nn.ModuleList(model_list)
+            self.num_model = len(model_list)  # 确保数量一致
+
+        def forward(self, x):
+            # 集成模型前向传播（这里简单平均）
+            outputs = [model(x) for model in self.models]
+            return sum(outputs) / len(outputs)
+
+    return EnsembleModelWrapper(models)
 
 def create_zip_archive(archive_base_path, root_dir, base_dir="images"):
     """
@@ -159,7 +207,7 @@ def get_attack(attack_name, norm_model, batch_size):
         atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
     elif attack_name == 'jitter':
         atk = Jitter(norm_model, eps=8/255, alpha=2/255, steps=10, scale=10, std=0.1, random_start=True)
-    elif attack_name == 'pgd_cw':  # 新增：PGDCW混合攻击
+    elif attack_name == 'pgd_cw':
         atk = PGD_CW(model=norm_model,pgd_eps=6/255,pgd_alpha=2/255,pgd_steps=10,pgd_random_start=True,cw_c=0.3,cw_kappa=0,cw_steps=300,cw_lr=0.01)
     elif attack_name == 'vnifgsm_sim':
         atk = VNIFGSM_SIM(model=norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0, n=20, beta=1.5, num_scale=5, scale_factor=1.1, momentum_weight=0.6, sim_weight=0.4)
@@ -167,6 +215,10 @@ def get_attack(attack_name, norm_model, batch_size):
         atk = Pixle_VNIFGSM(model=norm_model,eps=8/255,alpha=2/255,steps=15)
     elif attack_name == 'aifgtm':
         atk = AIFGTM(model=norm_model, eps=8/255, alpha=2/255, steps=10, decay=1.0, beta_1=0.9, beta_2=0.99, lam=1.3, mu_1=1.5, mu_2=1.9)
+    elif attack_name == 'adaea':
+        atk = AdaEA(model=norm_model, eps=16/255, alpha=1.6/255, steps=10, decay=1.0, beta=10, threshold=-0.3)
+    elif attack_name == 'cwa':
+        atk = CWA(model=norm_model, eps=16/255, alpha=3.2/255, steps=10, decay=1.0, beta=50, r_size=16/255/15, inner_step_size=250)
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)

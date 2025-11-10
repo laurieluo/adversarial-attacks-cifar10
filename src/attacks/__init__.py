@@ -14,3 +14,5 @@ from .pgd_cw import PGD_CW
 from .vnifgsm_sim import VNIFGSM_SIM
 from .pixle_vnifgsm import Pixle_VNIFGSM
 from .aifgtm import AIFGTM
+from .adaea import AdaEA
+from .cwa import CWA
