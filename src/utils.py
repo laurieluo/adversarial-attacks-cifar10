@@ -4,15 +4,17 @@ import logging
 import shutil
 import sys
 import os
+import re
 import numpy as np
 from datetime import datetime
 from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
+from src.wideresnet import WideResNet28_10, WideResNet94_16
 from src.attacks import (
     PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
     VNIFGSM, OnePixel, SparseFool, Jitter,
     PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
-    AdaEA, CWA, OPS, L2T
+    AdaEA, CWA, OPS, L2T, RFAInf
 )
 
 
@@ -46,25 +48,33 @@ class NormalizedModel(nn.Module):
         """
         super().__init__()
         self.model = model
-        
-        # CIFAR-10 standard mean and std
-        self.mean = torch.tensor([0.4914, 0.4822, 0.4465]).view(1, 3, 1, 1)
-        self.std = torch.tensor([0.2023, 0.1994, 0.2010]).view(1, 3, 1, 1)
+        normalizes_internally = (
+            isinstance(getattr(model, "mean", None), torch.Tensor)
+            and isinstance(getattr(model, "std", None), torch.Tensor)
+        )
+        self.should_normalize = not normalizes_internally
 
-        # Log the normalization stats
-        logging.info(f"NormalizedModel wrapper initialized.")
-        logging.debug(f"Using Mean: {self.mean.view(-1).tolist()}")
-        logging.debug(f"Using Std:  {self.std.view(-1).tolist()}")
+        if self.should_normalize:
+            # CIFAR-10 standard mean and std
+            self.mean = torch.tensor([0.4914, 0.4822, 0.4465]).view(1, 3, 1, 1)
+            self.std = torch.tensor([0.2023, 0.1994, 0.2010]).view(1, 3, 1, 1)
+
+            logging.info("NormalizedModel wrapper initialized with CIFAR-10 statistics.")
+            logging.debug(f"Using Mean: {self.mean.view(-1).tolist()}")
+            logging.debug(f"Using Std:  {self.std.view(-1).tolist()}")
+        else:
+            self.mean = None
+            self.std = None
+            logging.info("NormalizedModel wrapper detected internal normalization; skipping external normalization.")
 
     def forward(self, x):
         # x is assumed to be in the [0, 1] range
+        if not self.should_normalize:
+            return self.model(x)
         
-        # Ensure mean and std are on the same device as the input
-        self.mean = self.mean.to(x.device)
-        self.std = self.std.to(x.device)
-        
-        # (x - mean) / std
-        return self.model((x - self.mean) / self.std)
+        mean = self.mean.to(x.device)
+        std = self.std.to(x.device)
+        return self.model((x - mean) / std)
 
 
 class EnsembleModel(nn.Module):
@@ -144,19 +154,54 @@ def load_model(model_name, device):
     """
     Loads a pre-trained model instance based on its name.
     """
-    MODEL_PATH = f"saved_models/cifar10_{model_name.lower()}.pth"
+    normalized_name = re.sub(r'[^a-z0-9]+', '_', model_name.lower()).strip('_')
+
+    MODEL_REGISTRY = {
+        'resnet18': {'factory': ResNet18, 'weight': 'cifar10_resnet18.pth'},
+        'vgg16': {'factory': VGG16_BN, 'weight': 'cifar10_vgg16.pth'},
+        'densenet121': {'factory': DenseNet121, 'weight': 'cifar10_densenet121.pth'},
+        'wrn2810': {'factory': WideResNet28_10, 'weight': 'Cui2023Decoupled_wrn-28-10.pt'},
+        'wrn9416': {'factory': WideResNet94_16, 'weight': 'Bartoldson2024Adversarial_WRN-94-16.pt'},
+    }
+
+    MODEL_ALIASES = {
+        'resnet18': 'resnet18',
+        'resnet_18': 'resnet18',
+        'vgg16': 'vgg16',
+        'vgg_16': 'vgg16',
+        'densenet121': 'densenet121',
+        'dense_net121': 'densenet121',
+        'wrn2810': 'wrn2810',
+        'wrn28_10': 'wrn2810',
+        'wrn28-10': 'wrn2810',
+        'wideresnet28_10': 'wrn2810',
+        'wide_resnet28_10': 'wrn2810',
+        'wide_resnet28-10': 'wrn2810',
+        'wide_resnet_28_10': 'wrn2810',
+        'cui2023decoupled_wrn_28_10': 'wrn2810',
+        'cui2023decoupled_wrn-28-10': 'wrn2810',
+        'wrn94_16': 'wrn9416',
+        'wrn94-16': 'wrn9416',
+        'wideresnet94_16': 'wrn9416',
+        'wide_resnet94_16': 'wrn9416',
+        'wide_resnet94-16': 'wrn9416',
+        'wide_resnet_94_16': 'wrn9416',
+        'bartoldson2024adversarial_wrn_94_16': 'wrn9416',
+        'bartoldson2024adversarial_wrn-94-16': 'wrn9416',
+    }
+
+    canonical_name = MODEL_ALIASES.get(normalized_name, normalized_name)
+    if canonical_name not in MODEL_REGISTRY:
+        logging.error(f"Invalid model name '{model_name}'.")
+        sys.exit(1)
+
+    spec = MODEL_REGISTRY[canonical_name]
+    model_factory = spec['factory']
+    MODEL_PATH = os.path.join("saved_models", spec['weight'])
     logging.info(f"Loading pre-trained {model_name.upper()} model from: {MODEL_PATH}")
 
     # 1. Instantiate the base model
-    if model_name == 'resnet18':
-        base_model = ResNet18().to(device)
-    elif model_name == 'vgg16':
-        base_model = VGG16_BN().to(device)
-    elif model_name == 'densenet121':
-        base_model = DenseNet121().to(device)
-    else:
-        logging.error(f"Invalid model name '{model_name}'.")
-        sys.exit(1)
+    base_model = model_factory().to(device)
 
     # 2. Check for and load weights
     if not os.path.exists(MODEL_PATH):
@@ -175,7 +220,7 @@ def load_model(model_name, device):
     base_model.eval()
     return base_model
 
-def get_attack(attack_name, norm_model, batch_size):
+def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None):
     """
     Initializes and returns an attack instance based on its name.
     """
@@ -245,6 +290,24 @@ def get_attack(attack_name, norm_model, batch_size):
             steps=10,       # Official default
             decay=1.0,       # Official default
             num_scale=3     # Official default
+        )
+    elif attack_name == 'rfa_inf':
+        if surrogate_name:
+            logging.info(f"Loading RFA∞ surrogate model '{surrogate_name}'.")
+            surrogate_base = load_model(surrogate_name, device)
+            surrogate_model = NormalizedModel(surrogate_base).to(device)
+            surrogate_model.eval()
+        else:
+            logging.warning("No surrogate model provided; using victim model for gradients.")
+            surrogate_model = norm_model
+
+        atk = RFAInf(
+            model=norm_model,
+            surrogate_model=surrogate_model,
+            eps=0.1,
+            alpha=2 / 255,
+            steps=50,
+            random_start=True,
         )
     else:
         logging.error(f"Unknown attack '{attack_name}'")
