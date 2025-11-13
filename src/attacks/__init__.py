@@ -16,3 +16,5 @@ from .pixle_vnifgsm import Pixle_VNIFGSM
 from .aifgtm import AIFGTM
 from .adaea import AdaEA
 from .cwa import CWA
+from .ops import OPS
+from .l2t import L2T

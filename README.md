@@ -53,7 +53,8 @@ $ conda activate adv
 $ pip install -r requirements.txt
 ```
 
-**TransferAttack**
+#### TransferAttack
+
 ```bash
 # Run at the project root when first start:
 $ git clone https://github.com/Trustworthy-AI-Group/TransferAttack.git
@@ -82,7 +83,7 @@ $ mkdir dataset
 #
 ```
 
-### 3. (Optional) Train a Model 
+### 3. (Optional) Train a Model
 
 You can train a new model. The `train.py` script will save the model to the saved_models/ directory.
 **ONLY** when you want to add a new model, you need to define the model in `src/models.py` and modify the code
@@ -95,6 +96,7 @@ Already trained models:
 - `saved_models/cifar10_vgg16.pth`
 
 Example usage:
+
 ```bash
 # Train the default ResNet-18 model (takes ~10-15 min on a good GPU)
 $ python train.py --model resnet18
@@ -130,6 +132,8 @@ $ python run_attack.py --attack adaea --save-images
 
 - **Accuracy on Clean Dataset**: 97%
 
+- **TorchAttack Methods**
+
 | Attack     | Score_ASR | Score_SSIM | Score_M | Platform Score |
 |------------|-----------|------------|---------|----------------|
 | PGD        | 0.9980    | 0.9614     | 95.9453 | _11.3433_      |
@@ -144,9 +148,17 @@ $ python run_attack.py --attack adaea --save-images
 | Jitter     | 0.8360    | 0.9636     | 80.5606 | _10.3559_      |
 | AIFGTM     | 0.9920    | 0.9652     | 95.7507 | _7.2961_       |
 
+- **TransferAttack OPS**
+
+| Model     | $\epsilon$ | $\alpha$ | $N_e$ | $N_p$ | ASR | SSIM | Score |
+|-----------|------------|----------|-------|-------|-----|------|-------|
+|ResNet18   | 0.16       |0.016     |20     |20     |1    |0.6050|25.7335|
+|ResNet18   | 0.18       |0.018     |20     |20     |1    |0.5286|25.3164|
+|ResNet18   | 0.16       |0.016     |30     |30     |1    |0.6023|25.4922|
+
 ### Pixle Attack Parameters Optimizing
 
-| Model    | dimension | pixel_mapping        | restarts | max_iterations | ASR | SSIM | M | Platform Score |
+| Model    | dimension | pixel_mapping        | restarts | max_iterations | ASR | SSIM | M | Score |
 | -------- | --------- | -------------------- | -------- | -------------- | --- | ---- | - | -------------- |
 | ResNet18 | (2, 10)   | random               | 20       | 10             | 1.0000 | 0.7626 | 76.2641 | _20.7329_ |
 | ResNet18 | 1         | random               | 100      | 20             | 1.0000 | 0.9325 | 93.2459 | _7.5789_ |

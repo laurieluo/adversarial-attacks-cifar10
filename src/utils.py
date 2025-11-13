@@ -4,6 +4,7 @@ import logging
 import shutil
 import sys
 import os
+import numpy as np
 from datetime import datetime
 from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
@@ -11,7 +12,7 @@ from src.attacks import (
     PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
     VNIFGSM, OnePixel, SparseFool, Jitter,
     PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
-    AdaEA, CWA
+    AdaEA, CWA, OPS, L2T
 )
 
 
@@ -219,6 +220,32 @@ def get_attack(attack_name, norm_model, batch_size):
         atk = AdaEA(model=norm_model, eps=16/255, alpha=1.6/255, steps=10, decay=1.0, beta=10, threshold=-0.3)
     elif attack_name == 'cwa':
         atk = CWA(model=norm_model, eps=16/255, alpha=3.2/255, steps=10, decay=1.0, beta=50, r_size=16/255/15, inner_step_size=250)
+    elif attack_name == 'ops':
+        # OPS optimized for CIFAR-10 (32x32)
+        # Using smaller eps (8/255) and reduced num_sample_operator for better performance on small images
+        atk = OPS(
+            model=norm_model,
+            eps=16/255,       # Reduced from 16/255 for CIFAR-10 (better balance)
+            alpha=1.6/255,     # Will be set to eps/steps
+            steps=10,       # Official default
+            decay=1.0,       # Official default
+            beta=2.,         # Official default
+            num_sample_neighbor=30,    # Official default
+            num_sample_operator=30,    # Reduced from 20 for CIFAR-10 (faster, similar effectiveness)
+            sample_levels=range(1, 5),
+            sample_ratios=np.arange(0., 3, 0.5) + 0.5
+        )
+    elif attack_name == 'l2t':
+        # L2T optimized for CIFAR-10 (32x32)
+        # Using smaller eps (8/255) for better performance on small images
+        atk = L2T(
+            model=norm_model,
+            eps=8/255,       # Reduced from 16/255 for CIFAR-10 (better balance)
+            alpha=None,     # Will be set to eps/steps
+            steps=10,       # Official default
+            decay=1.0,       # Official default
+            num_scale=3     # Official default
+        )
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
