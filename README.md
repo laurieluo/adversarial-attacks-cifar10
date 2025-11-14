@@ -186,7 +186,7 @@ $ python run_attack.py --attack rfa_inf --model wrn9416 --target-model wrn9416 -
 | ResNet18 | (10, 20)  | random               | 20       | 10             | 1.0000 | 0.6170 | 61.7004 | _24.7218_ |
 
 
-### 2 Robust Model Results $^{\#current~best~!}$
+### 2 Robust Model Results
 
 - **Accuracy on Clean Dataset**: 98.2%
 
