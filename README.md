@@ -33,6 +33,7 @@
 ├── README.md                # Project description
 ├── requirements.txt         # Python dependencies
 ├── run_attack.py            # Main script to run adversarial attacks
+├── test_asr.py              # Script to test ASR on adversarial images
 └── train.py                 # Main script to train new models
 ```
 
@@ -133,6 +134,32 @@ $ python run_attack.py --attack adaea --save-images
 # 4. Run RFA_inf attack on robust model
 $ python run_attack.py --attack rfa_inf --model wrn9416 --target-model wrn9416 --save-images
 ```
+
+### 5. Test ASR on Adversarial Images
+
+After generating adversarial images, you can test their Attack Success Rate (ASR) on one or more models using `test_asr.py`.
+
+```bash
+# 1. Test ASR on a single model
+$ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --label-file adversarial_images/WRN2810/RFA_INF/label.txt --models resnet18
+
+# 2. Test ASR on multiple models (compare transferability)
+$ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --label-file adversarial_images/WRN2810/RFA_INF/label.txt --models resnet18 vgg16 densenet121 wrn2810 wrn9416
+
+# 3. Test with custom batch size
+$ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --label-file adversarial_images/WRN2810/RFA_INF/label.txt --models wrn2810 --batch-size 64
+```
+
+**Parameters:**
+- `--adv-images`: Path to directory containing adversarial images (required)
+- `--label-file`: Path to label file (same format as clean dataset, required)
+- `--models`: One or more model names to test ASR on (required, choices: resnet18, vgg16, densenet121, wrn2810, wrn9416)
+- `--batch-size`: Batch size for evaluation (optional, default: 32)
+
+**Output:**
+- Individual ASR results for each model tested
+- Summary table comparing ASR across all models (when multiple models are tested)
+- Average ASR across all models
 
 ## ✅ Current Results
 
