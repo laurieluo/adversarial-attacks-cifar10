@@ -44,13 +44,18 @@ def parse_args():
         '--attack', type=str, default='pgd',
         choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm',
                  'onepixel', 'sparsefool', 'jitter', 'pgd_cw', 'vnifgsm_sim',
-                 'pixle_vnifgsm', 'aifgtm', 'adaea', 'cwa'],
+                 'pixle_vnifgsm', 'aifgtm', 'adaea', 'cwa', 'ops', 'l2t', 'rfa_inf'],
         help="Type of attack to run (default: pgd)"
     )
     parser.add_argument(
         '--model', type=str, default='resnet18',
-        choices=['resnet18', 'vgg16', 'densenet121'],
+        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416'],
         help="Model architecture to attack (default: resnet18)"
+    )
+    parser.add_argument(
+        '--target-model', type=str, default=None,
+        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416'],
+        help="Victim model when using rfa_inf (optional otherwise)."
     )
     parser.add_argument(
         '--save-images', action='store_true',
@@ -62,10 +67,26 @@ def parse_args():
 def main():
     setup_logging()
     args = parse_args()
-    logging.info(f"Running Attack: {args.attack.upper()} on Model: {args.model.upper()}")
+
+    if args.attack == 'rfa_inf':
+        surrogate_model_name = args.model
+        if args.target_model:
+            target_model_name = args.target_model
+        else:
+            target_model_name = 'resnet18'
+            logging.info("No target model provided for RFA∞; defaulting to RESNET18.")
+    else:
+        surrogate_model_name = None
+        target_model_name = args.target_model or args.model
+        if args.target_model and args.target_model != args.model:
+            logging.warning("--target-model is only used by rfa_inf; ignoring for other attacks.")
+
+    logging.info(f"Running Attack: {args.attack.upper()} on Model: {target_model_name.upper()}")
+    if surrogate_model_name:
+        logging.info(f"Using surrogate model: {surrogate_model_name.upper()}")
 
     # Define paths
-    attack_output_dir = os.path.join(OUTPUT_DIR, args.model.upper(), args.attack.upper())
+    attack_output_dir = os.path.join(OUTPUT_DIR, target_model_name.upper(), args.attack.upper())
     images_save_dir = os.path.join(attack_output_dir, "images")
     
     if args.save_images:
@@ -81,11 +102,20 @@ def main():
 
     if args.attack in ENSEMBLE_ATTACKS:
         # 为集成攻击创建集成模型，确保只使用实际存在的模型
-        ensemble_models = ['resnet18', 'vgg16', 'densenet121']  # 确保这些模型都存在
+        ensemble_models = ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416']  # 确保这些模型都存在
         # 检查模型文件是否存在
         available_models = []
         for model_name in ensemble_models:
-            model_path = f"saved_models/cifar10_{model_name.lower()}.pth"
+            lower_name = model_name.lower()
+
+            # 根据模型名称选择模型路径
+            if lower_name == 'wrn2810':
+                model_path = "saved_models/Cui2023Decoupled_wrn-28-10.pt"
+            elif lower_name == 'wrn9416':
+                model_path = "saved_models/Bartoldson2024Adversarial_WRN-94-16.pt"
+            else:
+                model_path = f"saved_models/cifar10_{lower_name}.pth"
+
             if os.path.exists(model_path):
                 available_models.append(model_name)
             else:
@@ -99,7 +129,7 @@ def main():
         logging.info(f"Using {len(available_models)} models for AdaEA: {available_models}")
     else:
         # 单模型情况
-        base_model = load_model(args.model, device)
+        base_model = load_model(target_model_name, device)
         norm_model = NormalizedModel(base_model).to(device)
         norm_model.eval()
 
@@ -112,7 +142,13 @@ def main():
     )
 
     # --- 3. Initialize Attack ---
-    atk = get_attack(args.attack, norm_model, BATCH_SIZE)
+    atk = get_attack(
+        attack_name=args.attack,
+        norm_model=norm_model,
+        batch_size=BATCH_SIZE,
+        device=device,
+        surrogate_name=surrogate_model_name,
+    )
 
     # --- 4. Run Evaluation and Attack ---
     total_correct_clean = 0
@@ -172,7 +208,7 @@ def main():
 
         # --- 5a. Generate Report Table ---
         report_table = generate_results_table(
-            args.attack, args.model, total_images, 
+            args.attack, target_model_name, total_images, 
             acc_clean, acc_adv, score_asr, score_ssim, score_m
         )
         logging.info(report_table)
@@ -182,7 +218,7 @@ def main():
             save_and_archive_results(
                 attack_output_dir=attack_output_dir,
                 label_file=LABEL_FILE,
-                model_name=args.model,
+                model_name=target_model_name,
                 attack_name=args.attack
             )
     else:

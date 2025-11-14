@@ -53,7 +53,8 @@ $ conda activate adv
 $ pip install -r requirements.txt
 ```
 
-**TransferAttack**
+#### TransferAttack
+
 ```bash
 # Run at the project root when first start:
 $ git clone https://github.com/Trustworthy-AI-Group/TransferAttack.git
@@ -82,19 +83,26 @@ $ mkdir dataset
 #
 ```
 
-### 3. (Optional) Train a Model 
+### 3. (Optional) Train/Download Models
 
 You can train a new model. The `train.py` script will save the model to the saved_models/ directory.
 **ONLY** when you want to add a new model, you need to define the model in `src/models.py` and modify the code
 in `train.py`, we have already provided several trained models.
 
-Already trained models:
+#### Already trained models:
 
 - `saved_models/cifar10_densenet121.pth`
 - `saved_models/cifar10_resnet18.pth`
 - `saved_models/cifar10_vgg16.pth`
 
-Example usage:
+#### Download robust models:
+
+Put them in the `saved_models/` folder:
+- [Bartoldson2024Adversarial_WRN-94-16.pt (1.4G)](https://drive.usercontent.google.com/download?id=1g6o9H1b6vjoBi1USdCBt64C8B8LPiioX&authuser=0)
+- [Cui2023Decoupled_wrn-28-10.pt (139M)](https://drive.usercontent.google.com/download?id=1-AaTrYt23WJFR22hXgBd-i6kjpsz6Hf2&authuser=0)
+
+#### Example usage:
+
 ```bash
 # Train the default ResNet-18 model (takes ~10-15 min on a good GPU)
 $ python train.py --model resnet18
@@ -109,26 +117,32 @@ $ python train.py --model resnet18
 Once you have a saved model (e.g., saved_models/cifar10_resnet18.pth), you can run attacks against it using run_attack.py.
 
 ```bash
-# Run a PGD attack on ResNet-18 (no images saved)
+# 1. Run a PGD attack on ResNet-18 (no images saved)
 $ python run_attack.py --model resnet18 --attack pgd
 
-# Run a FGSM attack on VGG-16 and save the adversarial images
-# This will create a ZIP file in:
-# adversarial_images/VGG16/FGSM/VGG16_FGSM_[timestamp].zip
+# 2. Run a FGSM attack on VGG-16 and save the adversarial images
+#    This will create a ZIP file in:
+#    adversarial_images/VGG16/FGSM/VGG16_FGSM_[timestamp].zip
 $ python run_attack.py --model vgg16 --attack fgsm --save-images
 
-# Run a integrated attack algorithm like adaea,if save images,it will save to adversarial_images/RESNET18
+# 3. Run a integrated attack algorithm like adaea,if save images,
+#    it will save to adversarial_images/RESNET18
 $ python run_attack.py --attack adaea
 $ python run_attack.py --attack adaea --save-images
+
+# 4. Run RFA_inf attack on robust model
+$ python run_attack.py --attack rfa_inf --model wrn9416 --target-model wrn9416 --save-images
 ```
 
 ## ✅ Current Results
 
 - **Attack Methods**: Based on [torchattacks](https://github.com/Harry24k/adversarial-attacks-pytorch).
 
-### ResNet18 Results
+### 1 ResNet18 Results
 
 - **Accuracy on Clean Dataset**: 97%
+
+#### 1.1 TorchAttack Methods
 
 | Attack     | Score_ASR | Score_SSIM | Score_M | Platform Score |
 |------------|-----------|------------|---------|----------------|
@@ -144,17 +158,42 @@ $ python run_attack.py --attack adaea --save-images
 | Jitter     | 0.8360    | 0.9636     | 80.5606 | _10.3559_      |
 | AIFGTM     | 0.9920    | 0.9652     | 95.7507 | _7.2961_       |
 
-### Pixle Attack Parameters Optimizing
+#### 1.2 TransferAttack OPS
 
-| Model    | dimension | pixel_mapping        | restarts | max_iterations | ASR | SSIM | M | Platform Score |
+| Model     | $\epsilon$ | $\alpha$ | $N_e$ | $N_p$ | ASR | SSIM | Score |
+|-----------|------------|----------|-------|-------|-----|------|-------|
+|ResNet18   | 0.16       |0.016     |20     |20     |1    |0.6050|25.7335|
+|ResNet18   | 0.18       |0.018     |20     |20     |1    |0.5286|25.3164|
+|ResNet18   | 0.16       |0.016     |30     |30     |1    |0.6023|25.4922|
+|ResNet18   | 0.14       |0.014     |20     |20     |1    |0.6485|25.9854|
+|ResNet18   | 0.12       |0.012     |20     |20     |1    |0.6957|24.6067|
+|VGG16      | 0.14       |0.014     |20     |20     |1    |0.6485|26.7114|
+|DenseNet121| 0.14       |0.014     |20     |20     |1    |-     |26.2286|
+
+#### 1.3 Pixle Attack Parameters Optimizing
+
+| Model    | dim. | pixel_map        | res. | max_iter | ASR | SSIM | M | Score |
 | -------- | --------- | -------------------- | -------- | -------------- | --- | ---- | - | -------------- |
 | ResNet18 | (2, 10)   | random               | 20       | 10             | 1.0000 | 0.7626 | 76.2641 | _20.7329_ |
 | ResNet18 | 1         | random               | 100      | 20             | 1.0000 | 0.9325 | 93.2459 | _7.5789_ |
 | ResNet18 | 1         | random               | 100      | 50             | 1.0000 | 0.9403 | 94.0294 | _8.1837_ |
 | ResNet18 | 2         | random               | 100      | 50             | 1.0000 | 0.9121 | 91.2135 | _not test_ |
 | ResNet18 | 3         | random               | 100      | 50             | 1.0000 | 0.8847 | 88.4733 | _9.8378_ |
-| ResNet18 | 3         | similarity           | 100      | 50             | 0.9920 | 0.9046 | 89.7346 | _not test_ |
-| ResNet18 | 3         | similarity_random    | 100      | 50             | 1.0000 | 0.8892 | 88.9165 | _not test_ |
+| ResNet18 | 3         | simi.           | 100      | 50             | 0.9920 | 0.9046 | 89.7346 | _not test_ |
+| ResNet18 | 3         | s_r    | 100      | 50             | 1.0000 | 0.8892 | 88.9165 | _not test_ |
 | ResNet18 | (2, 10)   | random               | 100      | 50             | - | - | - | _16.4624_ |
 | ResNet18 | (5, 15)   | random               | 20       | 10             | 0.9980 | 0.6849 | 68.3518 | _22.5834_ |
 | ResNet18 | (10, 20)  | random               | 20       | 10             | 1.0000 | 0.6170 | 61.7004 | _24.7218_ |
+
+
+### 2 Robust Model Results
+
+- **Accuracy on Clean Dataset**: 98.2%
+
+- **TorchAttackEval Methods**: [TransferAttackEval](https://github.com/ZhengyuZhao/TransferAttackEval/tree/main)
+- **Robust Models**: [Robust Bench](https://robustbench.github.io/#leaderboard)
+
+|      Model                        | Attack     |   ASR   |  SSIM  |    M    |    Score    |
+|-----------------------------------|------------|---------|--------|---------|-------------|
+|Bartoldson2024Adversarial_WRN-94-16| RFA$\infin$| 0.9180  | 0.7502 | 68.8643 |_**43.0488**_|
+|Cui2023Decoupled_wrn-28-10         | RFA$\infin$|       - |      - |       - |_38.1566_    |
