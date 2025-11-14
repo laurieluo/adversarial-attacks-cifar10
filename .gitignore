@@ -5,3 +5,4 @@ src/__pycache__
 src/attacks/__pycache__/
 .idea/*
 saved_models/*
+.vscode/*

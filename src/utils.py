@@ -246,8 +246,8 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             n=20,           # VNI 官方值 (之前是 5)
             beta=1.5        # VNI 官方值
         )
+
     elif attack_name == 'onepixel':
-        # OnePixel needs inf_batch
         atk = OnePixel(norm_model, pixels=1, steps=10, popsize=10, inf_batch=batch_size)
     elif attack_name == 'sparsefool':
         atk = SparseFool(norm_model, steps=10, lam=3, overshoot=0.02)
@@ -265,6 +265,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
         atk = AdaEA(model=norm_model, eps=16/255, alpha=1.6/255, steps=10, decay=1.0, beta=10, threshold=-0.3)
     elif attack_name == 'cwa':
         atk = CWA(model=norm_model, eps=16/255, alpha=3.2/255, steps=10, decay=1.0, beta=50, r_size=16/255/15, inner_step_size=250)
+
     elif attack_name == 'ops':
         # OPS optimized for CIFAR-10 (32x32)
         # Using smaller eps (8/255) and reduced num_sample_operator for better performance on small images
@@ -280,6 +281,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             sample_levels=range(1, 5),
             sample_ratios=np.arange(0., 3, 0.5) + 0.5
         )
+
     elif attack_name == 'l2t':
         # L2T optimized for CIFAR-10 (32x32)
         # Using smaller eps (8/255) for better performance on small images
@@ -291,6 +293,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             decay=1.0,       # Official default
             num_scale=3     # Official default
         )
+
     elif attack_name == 'rfa_inf':
         if surrogate_name:
             logging.info(f"Loading RFA∞ surrogate model '{surrogate_name}'.")
@@ -309,6 +312,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             steps=50,
             random_start=True,
         )
+
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
