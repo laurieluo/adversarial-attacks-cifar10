@@ -10,12 +10,8 @@ from datetime import datetime
 from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
 from src.wideresnet import WideResNet28_10, WideResNet94_16
-from src.attacks import (
-    PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
-    VNIFGSM, OnePixel, SparseFool, Jitter,
-    PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
-    AdaEA, CWA, OPS, L2T, RFAInf
-)
+# Attack imports are moved to get_attack() function to avoid import errors
+# when TransferAttack is not available (e.g., in test_asr.py)
 
 
 def get_device():
@@ -224,6 +220,14 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
     """
     Initializes and returns an attack instance based on its name.
     """
+    # Lazy import of attacks to avoid import errors when TransferAttack is not available
+    from src.attacks import (
+        PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
+        VNIFGSM, OnePixel, SparseFool, Jitter,
+        PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
+        AdaEA, CWA, OPS, L2T, RFAInf
+    )
+    
     if attack_name == 'pgd':
         atk = PGD(norm_model, eps=8/255, alpha=2/255, steps=10, random_start=True)
     elif attack_name == 'fgsm':
@@ -406,3 +410,91 @@ def save_and_archive_results(attack_output_dir, label_file, model_name, attack_n
         root_dir=attack_output_dir,
         base_dir="images" 
     )
+
+
+def load_adversarial_images(adv_image_dir, label_file, batch_size=32):
+    """
+    Loads adversarial images from a directory.
+    
+    :param adv_image_dir: Directory containing adversarial images
+    :param label_file: Path to label file (same format as clean dataset)
+    :param batch_size: Batch size for DataLoader
+    :return: DataLoader for adversarial images
+    """
+    from src.data_loader import CustomCleanDataset
+    from torch.utils.data import DataLoader
+    from torchvision import transforms
+    
+    transform = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+    ])
+    
+    dataset = CustomCleanDataset(
+        image_dir=adv_image_dir,
+        label_file=label_file,
+        transform=transform
+    )
+    
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    logging.info(f"Loaded adversarial images from: {adv_image_dir}")
+    return dataloader
+
+
+def calculate_asr(model, adv_loader, device):
+    """
+    Calculates Attack Success Rate (ASR) on adversarial images.
+    
+    ASR = (Number of successful attacks) / (Total number of images)
+    A successful attack means the model misclassifies the adversarial image.
+    
+    :param model: The model to evaluate (should be wrapped with NormalizedModel)
+    :param adv_loader: DataLoader containing adversarial images and labels
+    :param device: Device to run evaluation on
+    :return: Dictionary containing ASR, accuracy, total_images, and successful_attacks
+    """
+    model.eval()
+    total_correct = 0
+    total_images = 0
+    
+    with torch.no_grad():
+        for images, labels, img_names in adv_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            
+            # Filter out invalid labels
+            valid_idx_bool = (labels != -1)
+            if not valid_idx_bool.any():
+                continue
+            
+            images_batch = images[valid_idx_bool]
+            labels_batch = labels[valid_idx_bool]
+            
+            # Get predictions
+            outputs = model(images_batch)
+            _, predicted = torch.max(outputs.data, 1)
+            
+            # Count correct predictions
+            correct = (predicted == labels_batch).sum().item()
+            total_correct += correct
+            total_images += labels_batch.size(0)
+    
+    if total_images == 0:
+        logging.warning("No valid images found for ASR calculation.")
+        return {
+            'asr': 0.0,
+            'accuracy': 0.0,
+            'total_images': 0,
+            'successful_attacks': 0
+        }
+    
+    accuracy = 100.0 * total_correct / total_images
+    successful_attacks = total_images - total_correct
+    asr = successful_attacks / total_images
+    
+    return {
+        'asr': asr,
+        'accuracy': accuracy,
+        'total_images': total_images,
+        'successful_attacks': successful_attacks
+    }
