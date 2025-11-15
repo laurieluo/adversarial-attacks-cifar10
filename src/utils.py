@@ -72,7 +72,6 @@ class NormalizedModel(nn.Module):
         std = self.std.to(x.device)
         return self.model((x - mean) / std)
 
-
 class EnsembleModel(nn.Module):
     def __init__(self, models):
         """
@@ -89,7 +88,6 @@ class EnsembleModel(nn.Module):
         """
         outputs = [model(x) for model in self.models]
         return sum(outputs) / len(outputs)
-
 
 def create_ensemble_model(model_names, device):
     """
@@ -146,6 +144,21 @@ def create_zip_archive(archive_base_path, root_dir, base_dir="images"):
     except Exception as e:
         logging.error(f"Failed to create ZIP archive at '{archive_base_path}.zip': {e}")
 
+# 特征层映射字典
+MODEL_FEATURE_LAYERS = {
+    'resnet18': 'layer2',  # ResNet18 中间残差块
+    'vgg16': 'features.15',  # VGG16 第3卷积块的最后一层
+    'densenet121': 'features.denseblock2',  # DenseNet121 第2个密集块
+    'wrn': 'layer.1'    # WRN28-10 和 WRN94-16 中间残差块组
+}
+
+def validate_feature_layer(model, layer_name):
+    """验证模型中是否存在指定的特征层"""
+    for name, _ in model.named_modules():
+        if name == layer_name:
+            return True
+    return False
+
 def load_model(model_name, device):
     """
     Loads a pre-trained model instance based on its name.
@@ -199,7 +212,15 @@ def load_model(model_name, device):
     # 1. Instantiate the base model
     base_model = model_factory().to(device)
 
-    # 2. Check for and load weights
+    # 2. Verify the feature layer
+    feature_layer = MODEL_FEATURE_LAYERS.get(canonical_name)
+    if feature_layer and not validate_feature_layer(base_model, feature_layer):
+        logging.warning(f"Feature layer '{feature_layer}' not found in {model_name}")
+        sys.exit(1)
+    else:
+        logging.info(f"Using feature layer '{feature_layer}' for {model_name.upper()}")
+
+    # 3. Check for and load weights
     if not os.path.exists(MODEL_PATH):
         logging.error(f"Model file not found at '{MODEL_PATH}'")
         logging.error(f"Please run 'python train.py --model {model_name}' first.")
@@ -221,11 +242,31 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
     Initializes and returns an attack instance based on its name.
     """
     # Lazy import of attacks to avoid import errors when TransferAttack is not available
+
+    # 1. 从norm_model中获取基础模型的类名
+    base_model_class_name = norm_model.model.__class__.__name__
+
+    # 2. 建立类名与标准模型名称的映射（与load_model中的逻辑对应）
+    model_class_to_name = {
+        "ResNet": "resnet18",
+        "VGG": "vgg16",
+        "DenseNet": "densenet121",
+        "DMWideResNet": "wrn"
+    }
+
+    # 3. 解析标准模型名称
+    try:
+        model_name = model_class_to_name[base_model_class_name]
+        logging.info(f"解析到标准模型名称: {model_name}")
+    except KeyError:
+        logging.error(f"未知的模型类: {base_model_class_name}，无法解析标准模型名称")
+        sys.exit(1)
+
     from src.attacks import (
         PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
         VNIFGSM, OnePixel, SparseFool, Jitter,
         PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
-        AdaEA, CWA, OPS, L2T, RFAInf
+        AdaEA, CWA, OPS, L2T, RFAInf, P2FA
     )
     
     if attack_name == 'pgd':
@@ -315,6 +356,18 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             alpha=2 / 255,
             steps=50,
             random_start=True,
+        )
+
+    elif attack_name == 'p2fa':
+        atk = P2FA(
+            model=norm_model,
+            eps=16/255,
+            alpha=1.6/255,
+            steps=10,
+            decay=1.0,
+            num_ens=30,
+            feature_layer=MODEL_FEATURE_LAYERS[model_name],
+            eta=28.0
         )
 
     else:
@@ -411,7 +464,6 @@ def save_and_archive_results(attack_output_dir, label_file, model_name, attack_n
         base_dir="images" 
     )
 
-
 def load_adversarial_images(adv_image_dir, label_file, batch_size=32):
     """
     Loads adversarial images from a directory.
@@ -439,7 +491,6 @@ def load_adversarial_images(adv_image_dir, label_file, batch_size=32):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     logging.info(f"Loaded adversarial images from: {adv_image_dir}")
     return dataloader
-
 
 def calculate_asr(model, adv_loader, device):
     """
