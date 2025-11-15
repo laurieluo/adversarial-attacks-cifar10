@@ -88,19 +88,16 @@ $ mkdir dataset
 
 You can train a new model. The `train.py` script will save the model to the saved_models/ directory.
 **ONLY** when you want to add a new model, you need to define the model in `src/models.py` and modify the code
-in `train.py`, we have already provided several trained models.
+in `train.py`.
 
-#### Already trained models:
-
-- `saved_models/cifar10_densenet121.pth`
-- `saved_models/cifar10_resnet18.pth`
-- `saved_models/cifar10_vgg16.pth`
+**Note**: We do not provide pre-trained models. You need to train or download them yourself.
 
 #### Download robust models:
 
 Put them in the `saved_models/` folder:
 - [Bartoldson2024Adversarial_WRN-94-16.pt (1.4G)](https://drive.usercontent.google.com/download?id=1g6o9H1b6vjoBi1USdCBt64C8B8LPiioX&authuser=0)
 - [Cui2023Decoupled_wrn-28-10.pt (139M)](https://drive.usercontent.google.com/download?id=1-AaTrYt23WJFR22hXgBd-i6kjpsz6Hf2&authuser=0)
+- [Wang2023Better_wrn-70-16.pt (1,018M)](https://drive.google.com/uc?id=1-RF7ZSS-PAh6bfQcuqx4lh9bc9BUGnap)
 
 #### Example usage:
 
@@ -153,7 +150,7 @@ $ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --la
 **Parameters:**
 - `--adv-images`: Path to directory containing adversarial images (required)
 - `--label-file`: Path to label file (same format as clean dataset, required)
-- `--models`: One or more model names to test ASR on (required, choices: resnet18, vgg16, densenet121, wrn2810, wrn9416)
+- `--models`: One or more model names to test ASR on (required, choices: resnet18, vgg16, densenet121, wrn2810, wrn9416, wrn7016)
 - `--batch-size`: Batch size for evaluation (optional, default: 32)
 
 **Output:**
@@ -212,7 +209,6 @@ $ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --la
 | ResNet18 | (5, 15)   | random               | 20       | 10             | 0.9980 | 0.6849 | 68.3518 | _22.5834_ |
 | ResNet18 | (10, 20)  | random               | 20       | 10             | 1.0000 | 0.6170 | 61.7004 | _24.7218_ |
 
-
 ### 2 Robust Model Results
 
 - **Accuracy on Clean Dataset**: 98.2%
@@ -224,3 +220,16 @@ $ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --la
 |-----------------------------------|------------|---------|--------|---------|-------------|
 |Bartoldson2024Adversarial_WRN-94-16| RFA$\infin$| 0.9180  | 0.7502 | 68.8643 |_**43.0488**_|
 |Cui2023Decoupled_wrn-28-10         | RFA$\infin$|       - |      - |       - |_38.1566_    |
+
+#### 2.1 RFA∞ Attack Results on Multiple Models
+
+| Model                | ASR                       | Accuracy        | Total Images   |
+|----------------------|---------------------------|-----------------|----------------|
+| RESNET18             | 0.9400 (94.00%)           | 6.00%           | 500            |
+| VGG16                | 0.9120 (91.20%)           | 8.80%           | 500            |
+| DENSENET121          | 0.9320 (93.20%)           | 6.80%           | 500            |
+| WRN2810              | 0.8880 (88.80%)           | 11.20%          | 500            |
+| WRN9416              | 0.8100 (81.00%)           | 19.00%          | 500            |
+| WRN7016              | 0.9180 (91.80%)           | 8.20%           | 500            |
+|----------------------|---------------------------|-----------------|----------------|
+| Average ASR          | 0.9000 (90.00%)           |                 |                |

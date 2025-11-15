@@ -9,7 +9,7 @@ import numpy as np
 from datetime import datetime
 from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
-from src.wideresnet import WideResNet28_10, WideResNet94_16
+from src.wideresnet import WideResNet28_10, WideResNet94_16, WideResNet70_16
 # Attack imports are moved to get_attack() function to avoid import errors
 # when TransferAttack is not available (e.g., in test_asr.py)
 
@@ -171,32 +171,18 @@ def load_model(model_name, device):
         'densenet121': {'factory': DenseNet121, 'weight': 'cifar10_densenet121.pth'},
         'wrn2810': {'factory': WideResNet28_10, 'weight': 'Cui2023Decoupled_wrn-28-10.pt'},
         'wrn9416': {'factory': WideResNet94_16, 'weight': 'Bartoldson2024Adversarial_WRN-94-16.pt'},
+        'wrn7016': {'factory': WideResNet70_16, 'weight': 'Wang2023Better_wrn-70-16.pt'},
     }
 
     MODEL_ALIASES = {
         'resnet18': 'resnet18',
-        'resnet_18': 'resnet18',
         'vgg16': 'vgg16',
-        'vgg_16': 'vgg16',
         'densenet121': 'densenet121',
-        'dense_net121': 'densenet121',
         'wrn2810': 'wrn2810',
-        'wrn28_10': 'wrn2810',
-        'wrn28-10': 'wrn2810',
-        'wideresnet28_10': 'wrn2810',
-        'wide_resnet28_10': 'wrn2810',
-        'wide_resnet28-10': 'wrn2810',
-        'wide_resnet_28_10': 'wrn2810',
-        'cui2023decoupled_wrn_28_10': 'wrn2810',
-        'cui2023decoupled_wrn-28-10': 'wrn2810',
-        'wrn94_16': 'wrn9416',
-        'wrn94-16': 'wrn9416',
-        'wideresnet94_16': 'wrn9416',
-        'wide_resnet94_16': 'wrn9416',
-        'wide_resnet94-16': 'wrn9416',
-        'wide_resnet_94_16': 'wrn9416',
-        'bartoldson2024adversarial_wrn_94_16': 'wrn9416',
-        'bartoldson2024adversarial_wrn-94-16': 'wrn9416',
+        'wrn9416': 'wrn9416',
+        'wrn7016': 'wrn7016',
+        'wang2023better_wrn_70_16': 'wrn7016',  # Support full name format
+        'wang2023better': 'wrn7016',  # Support shortened name
     }
 
     canonical_name = MODEL_ALIASES.get(normalized_name, normalized_name)

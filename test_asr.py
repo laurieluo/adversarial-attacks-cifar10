@@ -58,7 +58,7 @@ Examples:
     )
     parser.add_argument(
         '--models', type=str, nargs='+', required=True,
-        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416'],
+        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016'],
         help="One or more model names to test ASR on"
     )
     parser.add_argument(
