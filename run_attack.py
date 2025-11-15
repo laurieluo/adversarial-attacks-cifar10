@@ -49,12 +49,12 @@ def parse_args():
     )
     parser.add_argument(
         '--model', type=str, default='resnet18',
-        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416'],
+        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016'],
         help="Model architecture to attack (default: resnet18)"
     )
     parser.add_argument(
         '--target-model', type=str, default=None,
-        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416'],
+        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016'],
         help="Victim model when using rfa_inf (optional otherwise)."
     )
     parser.add_argument(
@@ -102,7 +102,7 @@ def main():
 
     if args.attack in ENSEMBLE_ATTACKS:
         # 为集成攻击创建集成模型，确保只使用实际存在的模型
-        ensemble_models = ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416']  # 确保这些模型都存在
+        ensemble_models = ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016']  # 确保这些模型都存在
         # 检查模型文件是否存在
         available_models = []
         for model_name in ensemble_models:
@@ -113,6 +113,8 @@ def main():
                 model_path = "saved_models/Cui2023Decoupled_wrn-28-10.pt"
             elif lower_name == 'wrn9416':
                 model_path = "saved_models/Bartoldson2024Adversarial_WRN-94-16.pt"
+            elif lower_name == 'wrn7016':
+                model_path = "saved_models/Wang2023Better_wrn-70-16.pt"
             else:
                 model_path = f"saved_models/cifar10_{lower_name}.pth"
 
