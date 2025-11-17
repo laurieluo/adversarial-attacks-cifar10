@@ -20,3 +20,4 @@ from .ops import OPS
 from .l2t import L2T
 from .rfa_inf import RFAInf
 from .p2fa import P2FA
+from .bfa import BFA
