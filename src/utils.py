@@ -252,7 +252,8 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
         PGD, FGSM, BIM, CW, AutoAttack, Pixle, 
         VNIFGSM, OnePixel, SparseFool, Jitter,
         PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
-        AdaEA, CWA, OPS, L2T, RFAInf, P2FA, BFA
+        AdaEA, CWA, OPS, L2T, RFAInf, P2FA,
+        PGN, GRA, MEF, BFA
     )
     
     if attack_name == 'pgd':
@@ -355,6 +356,42 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             feature_layer=MODEL_FEATURE_LAYERS[model_name],
             eta=28.0
         )
+    
+    elif attack_name == 'pgn':
+        atk = PGN(
+            model=norm_model,
+            eps=16/255,          # 官方默认值
+            alpha=1.6/255,       # 官方默认值 (eps/10)
+            steps=10,            # 官方默认值
+            decay=1.0,           
+            beta=3.0,            # PGN 官方默认值
+            gamma=0.5,           # PGN 官方默认值
+            n=20                 # PGN 官方默认值
+        )
+
+    elif attack_name == 'gra':
+        atk = GRA(
+            model=norm_model,
+            eps=16/255,          # 官方默认值
+            alpha=1.6/255,       # 官方默认值 (eps/10)
+            steps=10,            # 官方默认值
+            decay=1.0,
+            beta=3.5,            # GRA 官方默认值
+            n=20                 # GRA 官方默认值
+        )
+
+    elif attack_name == 'mef':
+        atk = MEF(
+            model=norm_model,
+            eps=16/255,          # 官方默认值
+            alpha=1.6/255,       # 官方默认值
+            steps=20,            # MEF 官方默认值 (epoch=20)
+            decay=0.5,           # MEF 官方默认值
+            inner_decay=0.9,     # MEF 官方默认值
+            n=20,                # MEF 官方默认值
+            gamma=2.0,           # MEF 官方默认值
+            kesai=0.15           # MEF 官方默认值
+        )
 
     elif attack_name == 'bfa':
         atk = BFA(
@@ -367,7 +404,6 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             layer_name=MODEL_FEATURE_LAYERS[model_name],
             eta=28.0
         )
-
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
