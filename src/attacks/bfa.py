@@ -1,4 +1,4 @@
-# src/attacks/p2fa.py
+# src/attacks/bfa.py
 
 import logging
 import sys
@@ -63,7 +63,7 @@ class BFA(BaseAttack):
         :param steps: Number of attack iterations (TransferAttack calls this 'epoch').
         :param decay: Momentum decay factor.
         :param num_ens: the number of gradients to aggregate.
-        :param feature_layer: feature layer to launch the attack.
+        :param layer_name: feature layer to launch the attack.
         """
         logging.info("Initializing TransferAttack BFA...")
         super().__init__(model)

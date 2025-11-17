@@ -253,7 +253,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
         VNIFGSM, OnePixel, SparseFool, Jitter,
         PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
         AdaEA, CWA, OPS, L2T, RFAInf, P2FA,
-        PGN, GRA, MEF, BFA
+        PGN, GRA, MEF, BFA, ILPD
     )
     
     if attack_name == 'pgd':
@@ -404,6 +404,20 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             layer_name=MODEL_FEATURE_LAYERS[model_name],
             eta=28.0
         )
+
+    elif attack_name == 'ilpd':
+        atk = ILPD(
+            model=norm_model,
+            eps=16/255,
+            alpha=1/255,
+            steps=100,
+            decay=1.0,
+            il_module=MODEL_FEATURE_LAYERS[model_name],
+            sigma=0.05,
+            coef=0.1,
+            N=1
+        )
+
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
