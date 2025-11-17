@@ -23,3 +23,4 @@ from .p2fa import P2FA
 from .pgn import PGN
 from .gra import GRA
 from .mef import MEF
+from .bfa import BFA

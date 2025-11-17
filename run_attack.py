@@ -45,7 +45,7 @@ def parse_args():
         choices=['pgd', 'fgsm', 'bim', 'cw', 'autoattack', 'pixle', 'vnifgsm',
                  'onepixel', 'sparsefool', 'jitter', 'pgd_cw', 'vnifgsm_sim',
                  'pixle_vnifgsm', 'aifgtm', 'adaea', 'cwa', 'ops', 'l2t', 'rfa_inf', 'p2fa',
-                 'pgn', 'gra', 'mef'],
+                 'pgn', 'gra', 'mef', 'bfa'],
         help="Type of attack to run (default: pgd)"
     )
     parser.add_argument(

@@ -253,7 +253,7 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
         VNIFGSM, OnePixel, SparseFool, Jitter,
         PGD_CW, VNIFGSM_SIM, Pixle_VNIFGSM, AIFGTM,
         AdaEA, CWA, OPS, L2T, RFAInf, P2FA,
-        PGN, GRA, MEF
+        PGN, GRA, MEF, BFA
     )
     
     if attack_name == 'pgd':
@@ -393,6 +393,17 @@ def get_attack(attack_name, norm_model, batch_size, device, surrogate_name=None)
             kesai=0.15           # MEF 官方默认值
         )
 
+    elif attack_name == 'bfa':
+        atk = BFA(
+            model=norm_model,
+            eps=16/255,
+            alpha=1.6/255,
+            steps=10,
+            decay=1.0,
+            num_ens=30,
+            layer_name=MODEL_FEATURE_LAYERS[model_name],
+            eta=28.0
+        )
     else:
         logging.error(f"Unknown attack '{attack_name}'")
         sys.exit(1)
