@@ -9,7 +9,7 @@ import numpy as np
 from datetime import datetime
 from skimage.metrics import structural_similarity
 from src.models import ResNet18, VGG16_BN, DenseNet121
-from src.wideresnet import WideResNet28_10, WideResNet94_16, WideResNet70_16
+from src.wideresnet import WideResNet28_10, WideResNet94_16, WideResNet70_16, WideResNet82_8
 # Attack imports are moved to get_attack() function to avoid import errors
 # when TransferAttack is not available (e.g., in test_asr.py)
 
@@ -172,6 +172,7 @@ def load_model(model_name, device):
         'wrn2810': {'factory': WideResNet28_10, 'weight': 'Cui2023Decoupled_wrn-28-10.pt'},
         'wrn9416': {'factory': WideResNet94_16, 'weight': 'Bartoldson2024Adversarial_WRN-94-16.pt'},
         'wrn7016': {'factory': WideResNet70_16, 'weight': 'Wang2023Better_wrn-70-16.pt'},
+        'wrn828': {'factory': WideResNet82_8, 'weight': 'Bartoldson2024Adversarial_WRN-82-8.pt'},
     }
 
     MODEL_ALIASES = {

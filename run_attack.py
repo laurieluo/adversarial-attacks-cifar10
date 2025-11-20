@@ -37,8 +37,24 @@ LABEL_FILE = "dataset/cifar10_clean_500/label.txt"
 OUTPUT_DIR = "adversarial_images"
 BATCH_SIZE = 32
 
+MODEL_CONFIG = {
+    'bartoldson-wrn9416': {
+        'arch': 'wrn9416',  # 必须是 load_model 能识别的基础架构名 (如 wrn9416, resnet18)
+        'path': 'saved_models/Bartoldson2024Adversarial_WRN-94-16.pt'
+    },
+    'amini-wrn9416': {
+        'arch': 'wrn9416', 
+        'path': 'saved_models/Amini2024MeanSparse_S-WRN-94-16.pt'
+    },
+    'bartoldson-wrn828': {
+        'arch': 'wrn828',  
+        'path': 'saved_models/Bartoldson2024Adversarial_WRN-82-8.pt'
+    },
+}
+
 # --- Argument Parser ---
 def parse_args():
+    all_choices = list(MODEL_CONFIG.keys()) + ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016', 'wrn828']
     parser = argparse.ArgumentParser(description="Run adversarial attacks on CIFAR-10")
     parser.add_argument(
         '--attack', type=str, default='pgd',
@@ -50,19 +66,51 @@ def parse_args():
     )
     parser.add_argument(
         '--model', type=str, default='resnet18',
-        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016'],
-        help="Model architecture to attack (default: resnet18)"
+        help=f"Model architecture to attack. Options: {all_choices}"
     )
     parser.add_argument(
         '--target-model', type=str, default=None,
-        choices=['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016'],
-        help="Victim model when using rfa_inf (optional otherwise)."
+        choices=all_choices, 
+        help="The victim model to evaluate the attack against. Primarily used in transfer attacks (like 'rfa_inf') to specify a target different from the surrogate model (--model). If not specified, defaults to the same as --model."
     )
     parser.add_argument(
         '--save-images', action='store_true',
         help="Save the generated adversarial images to disk"
     )
     return parser.parse_args()
+
+def load_custom_model_wrapper(model_name, device):
+    # 1. 如果是我们在配置里定义的自定义模型
+    if model_name in MODEL_CONFIG:
+        config = MODEL_CONFIG[model_name]
+        arch = config['arch']
+        path = config['path']
+        
+        logging.info(f"Custom Model Detected: {model_name} -> Arch: {arch}, Path: {path}")
+        
+        # 先加载基础骨架
+        model = load_model(arch, device)
+        
+        # 再加载权重
+        if os.path.exists(path):
+            try:
+                state_dict = torch.load(path, map_location=device)
+                if 'state_dict' in state_dict: state_dict = state_dict['state_dict']
+                elif 'net' in state_dict: state_dict = state_dict['net']
+                elif 'model' in state_dict: state_dict = state_dict['model']
+                
+                model.load_state_dict(state_dict, strict=False)
+                logging.info(f"Successfully loaded weights from {path}")
+            except Exception as e:
+                logging.error(f"Failed to load custom weights: {e}")
+                sys.exit(1)
+        else:
+            logging.warning(f"Weight file not found: {path}. Using random init.")
+        return model
+        
+    # 2. 如果不是自定义模型，直接调用原来的加载函数
+    else:
+        return load_model(model_name, device)
 
 # --- Main Execution ---
 def main():
@@ -103,7 +151,7 @@ def main():
 
     if args.attack in ENSEMBLE_ATTACKS:
         # 为集成攻击创建集成模型，确保只使用实际存在的模型
-        ensemble_models = ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'wrn9416', 'wrn7016']  # 确保这些模型都存在
+        ensemble_models = ['resnet18', 'vgg16', 'densenet121', 'wrn2810', 'bartoldson-wrn9416', 'amini-wrn9416', 'wrn7016', 'bartoldson-wr828']  # 确保这些模型都存在
         # 检查模型文件是否存在
         available_models = []
         for model_name in ensemble_models:
@@ -112,8 +160,12 @@ def main():
             # 根据模型名称选择模型路径
             if lower_name == 'wrn2810':
                 model_path = "saved_models/Cui2023Decoupled_wrn-28-10.pt"
-            elif lower_name == 'wrn9416':
+            elif lower_name == 'bartoldson-wrn9416':
                 model_path = "saved_models/Bartoldson2024Adversarial_WRN-94-16.pt"
+            elif lower_name == 'amini-wrn9416':
+                model_path = "saved_models/Amini2024MeanSparse_S-WRN-94-16.pt"
+            elif lower_name == 'bartoldson-wr828':
+                model_path = "saved_models/Bartoldson2024Adversarial_WRN-82-8.pt"
             elif lower_name == 'wrn7016':
                 model_path = "saved_models/Wang2023Better_wrn-70-16.pt"
             else:
@@ -132,7 +184,8 @@ def main():
         logging.info(f"Using {len(available_models)} models for AdaEA: {available_models}")
     else:
         # 单模型情况
-        base_model = load_model(target_model_name, device)
+        base_model = load_custom_model_wrapper(target_model_name, device)
+        
         norm_model = NormalizedModel(base_model).to(device)
         norm_model.eval()
 

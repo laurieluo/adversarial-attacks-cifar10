@@ -232,6 +232,21 @@ def WideResNet70_16(
         std=std,
     )
 
+def WideResNet82_8(
+    num_classes: int = 10,
+    activation_fn: Type[nn.Module] = nn.SiLU,
+    mean: Union[Tuple[float, ...], float] = CIFAR10_MEAN,
+    std: Union[Tuple[float, ...], float] = CIFAR10_STD,
+    width: int = 8,
+) -> DMWideResNet:
+    return DMWideResNet(
+        num_classes=num_classes,
+        depth=82,
+        width=width,
+        activation_fn=activation_fn,
+        mean=mean,
+        std=std,
+    )
 
-__all__ = ["DMWideResNet", "WideResNet28_10", "WideResNet94_16", "WideResNet70_16"]
+__all__ = ["DMWideResNet", "WideResNet28_10", "WideResNet94_16", "WideResNet70_16", "WideResNet82_8"]
 
