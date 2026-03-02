@@ -218,8 +218,8 @@ $ python test_asr.py --adv-images adversarial_images/WRN2810/RFA_INF/images --la
 
 |      Model                        | Attack     |   ASR   |  SSIM  |    M    |    Score    |
 |-----------------------------------|------------|---------|--------|---------|-------------|
-|Bartoldson2024Adversarial_WRN-94-16| RFA$\infin$| 0.9180  | 0.7502 | 68.8643 |_**43.0488**_|
-|Cui2023Decoupled_wrn-28-10         | RFA$\infin$|       - |      - |       - |_38.1566_    |
+|Bartoldson2024Adversarial_WRN-94-16| RFA-inf| 0.9180  | 0.7502 | 68.8643 |_**43.0488**_|
+|Cui2023Decoupled_wrn-28-10         | RFA-inf|       - |      - |       - |_38.1566_    |
 |Bartoldson2024Adversarial_WRN-94-16| GRA        | 0.2120  | 0.8844 | 18.7497 |_32.5697_|
 |Bartoldson2024Adversarial_WRN-94-16| PGN        | 0.1980  | 0.8830 | 17.4841 |_32.9981_|
 |Bartoldson2024Adversarial_WRN-94-16| MEF        | 0.2020  | 0.8723 | 17.6204 |_33.4605_|
